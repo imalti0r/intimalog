@@ -1,0 +1,90 @@
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/data/repo/RecordRepository.kt:29:90 Unresolved reference 'first'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:45:41 Unresolved reference 'SexRecordWithPartners'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:14 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:14 Candidate 'fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R>' is inapplicable because of a receiver type mismatch.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:20 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:27 Unresolved reference 'partners'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:47 Cannot infer type for value parameter 'p'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:54 Unresolved reference 'id'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:59 Cannot infer type for type parameter 'A'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:59 Cannot infer type for type parameter 'B'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:59 Candidate 'fun <A, B> A.to(that: B): Pair<A, B>' is inapplicable because of a receiver type mismatch.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:47:64 Unresolved reference 'record'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:48:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:48:23 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:48:23 Operator call 'component1()' is ambiguous for destructuring of type 'uninferred ??? (Unknown type for type parameter T)'. Applicable candidates:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:48:23 Operator call 'component2()' is ambiguous for destructuring of type 'uninferred ??? (Unknown type for type parameter T)'. Applicable candidates:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:48:49 Unresolved reference 'size'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:14 Cannot infer type for type parameter 'K'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:24 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:24 Operator call 'component1()' is ambiguous for destructuring of type 'uninferred ??? (Unknown type for type parameter T)'. Applicable candidates:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:24 Operator call 'component2()' is ambiguous for destructuring of type 'uninferred ??? (Unknown type for type parameter T)'. Applicable candidates:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:49:56 Unresolved reference 'it'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:50:14 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:51:33 The type of a receiver hasn't been inferred yet. Specify type argument for generic parameter 'V' of 'component2' explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:51:39 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:51:39 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:51:50 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:51:55 Unresolved reference 'second'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:31 The type of a receiver hasn't been inferred yet. Specify type argument for generic parameter 'V' of 'component2' explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:37 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:41 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:46 Unresolved reference 'second'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:71 The type of a receiver hasn't been inferred yet. Specify type argument for generic parameter 'T' of 'filter' explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:52:74 'operator' modifier is required on 'fun <T> Comparable<T>.compareTo(other: T): Int'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:55:42 Unresolved reference 'size'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/domain/usecase/RecordUseCases.kt:57:74 None of the following candidates is applicable:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/service/TimingService.kt:43:36 Unresolved reference 'updateAll' on receiver of type 'IntimaWidget'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/tile/RecordTileService.kt:22:55 Argument type mismatch: actual type is 'RecordTileService', but 'LifecycleOwner' was expected.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/tile/RecordTileService.kt:23:5 'lifecycle' overrides nothing.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/tile/RecordTileService.kt:35:9 Candidate 'val LifecycleOwner.lifecycleScope: LifecycleCoroutineScope' is inapplicable because of a receiver type mismatch.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/tile/RecordTileService.kt:42:28 Unresolved reference 'updateAll' on receiver of type 'IntimaWidget'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/tile/RecordTileService.kt:49:9 Candidate 'val LifecycleOwner.lifecycleScope: LifecycleCoroutineScope' is inapplicable because of a receiver type mismatch.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/home/HomeComponents.kt:97:72 Unresolved reference 'Add'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/onboarding/OnboardingScreen.kt:82:34 Unresolved reference 'clickable' on receiver of type 'Modifier'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/onboarding/OnboardingScreen.kt:125:14 Unresolved reference 'clickable' on receiver of type 'Modifier'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/partner/CombinationScreens.kt:90:37 Unresolved reference 'size'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/partner/CombinationScreens.kt:154:82 Unresolved reference 'size'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/quickadd/QuickAddActivity.kt:96:28 Unresolved reference 'updateAll' on receiver of type 'IntimaWidget'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:5:45 Unresolved reference 'draggable2'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:71:15 Property delegate must have a 'getValue(Nothing?, KProperty0<*>)' method. None of the following functions is applicable:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:71:34 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:71:34 Candidate 'fun <T> StateFlow<T>.collectAsState(context: CoroutineContext = ...): State<T>' is inapplicable because of a receiver type mismatch.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:73:26 Unresolved reference 'saved'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:73:45 Unresolved reference 'saved'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:84:27 Unresolved reference 'recordId'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:90:23 Unresolved reference 'startTimeText'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:97:19 Unresolved reference 'ongoing'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:99:45 Unresolved reference 'elapsedText'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:110:41 Unresolved reference 'multiPartner'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:112:23 Unresolved reference 'partners'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:120:38 Unresolved reference 'partners'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:121:41 Unresolved reference 'selectedIds'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:122:35 Unresolved reference 'multiPartner'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:126:23 Unresolved reference 'selectedIds'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:128:33 Unresolved reference 'selectedIds'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:143:42 Unresolved reference 'protection'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:158:50 Unresolved reference 'rating'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:163:30 Unresolved reference 'clickableNoRipple' on receiver of type 'Modifier'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:176:49 Unresolved reference 'moodTags'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:190:42 Unresolved reference 'place'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:199:27 Unresolved reference 'note'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditScreen.kt:212:19 Unresolved reference 'recordId'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/record/RecordEditViewModel.kt:76:10 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/settings/BackupScreen.kt:91:13 Unresolved reference 'viewModelScope'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/settings/SettingsScreen.kt:148:6 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/settings/SettingsScreen.kt:184:77 None of the following candidates is applicable:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/ui/settings/SettingsScreen.kt:184:77 No value passed for parameter 'onClick'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:51:1 Class 'IntimaWidget' is not abstract and does not implement abstract base class member:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:53:5 'provideGlance' overrides nothing. Potential signatures for overriding:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:53:88 Unresolved reference 'GlanceId'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:60:37 Suspension functions can only be called within coroutine body.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:62:31 Suspension functions can only be called within coroutine body.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:63:45 Suspension functions can only be called within coroutine body.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:161:1 Class 'ToggleRecordCallback' is not abstract and does not implement abstract member:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:162:5 'onAction' overrides nothing. Potential signatures for overriding:
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:164:45 Unresolved reference 'GlanceId'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/IntimaWidget.kt:165:54 Unresolved reference 'ActionParameters'.
+e: file:///E:/Folders/Trea/intimalog/app/src/main/java/com/intima/log/widget/WidgetBootReceiver.kt:16:32 Unresolved reference 'updateAll' on receiver of type 'IntimaWidget'.

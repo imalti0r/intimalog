@@ -1,0 +1,210 @@
+package com.intima.log.ui.record
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.intima.log.data.db.Partner
+import com.intima.log.data.db.Place
+import com.intima.log.data.db.Protection
+import com.intima.log.data.repo.PartnerRepository
+import com.intima.log.data.repo.ProfileRepository
+import com.intima.log.data.repo.RecordDraft
+import com.intima.log.domain.usecase.SaveRecordWithPartnersUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import javax.inject.Inject
+
+data class RecordEditState(
+    val recordId: Long = 0,
+    val partners: List<Partner> = emptyList(),
+    val selectedIds: Set<Long> = emptySet(),
+    val multiPartner: Boolean = true,
+    val ongoing: Boolean = false,
+    val protections: Set<Protection> = emptySet(),  // 多选保护措施
+    val rating: Int = 0,
+    val moodTag: String = "",                        // 情绪（单选）
+    val place: Place = Place.NOT_RECORDED,
+    val positions: List<String> = emptyList(),       // 自定义体位
+    val toys: List<String> = emptyList(),            // 自定义玩具
+    val knownPositions: List<String> = emptyList(),  // 历史用过的体位（去重）
+    val knownToys: List<String> = emptyList(),       // 历史用过的玩具
+    val note: String = "",
+    val startTime: Long = System.currentTimeMillis(),
+    val endTime: Long? = null,
+    val saved: Boolean = false,
+) {
+    val startTimeText: String
+        get() = Instant.ofEpochMilli(startTime).atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("MM-dd HH:mm"))
+
+    val elapsedText: String
+        get() {
+            val sec = ((endTime ?: System.currentTimeMillis()) - startTime) / 1000
+            return "${sec / 60} 分钟"
+        }
+}
+
+@HiltViewModel
+class RecordEditViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val saveUseCase: SaveRecordWithPartnersUseCase,
+    private val partnerRepository: PartnerRepository,
+    private val recordRepository: com.intima.log.data.repo.RecordRepository,
+    private val db: com.intima.log.data.db.IntimaDatabase,
+    profileRepository: ProfileRepository,
+) : ViewModel() {
+
+    private val recordId: Long = savedStateHandle.get<Long>("recordId") ?: 0L
+
+    var state by mutableStateOf(RecordEditState(recordId = recordId))
+        private set
+
+    init {
+        viewModelScope.launch {
+            partnerRepository.observeActive().collect { partners ->
+                state = state.copy(partners = partners)
+            }
+        }
+        viewModelScope.launch {
+            val profile = profileRepository.profile.first()
+            state = state.copy(multiPartner = profile.enableMultiPartner)
+        }
+        // 管理页维护的体位 / 玩具标签
+        viewModelScope.launch {
+            db.tagDao().observeKind("position").collect { list ->
+                state = state.copy(knownPositions = list.map { it.name })
+            }
+        }
+        viewModelScope.launch {
+            db.tagDao().observeKind("toy").collect { list ->
+                state = state.copy(knownToys = list.map { it.name })
+            }
+        }
+        if (recordId != 0L) {
+            viewModelScope.launch {
+                val existing = recordRepository.byId(recordId) ?: return@launch
+                state = state.copy(
+                    selectedIds = existing.partners.map { it.id }.toSet(),
+                    protections = existing.record.protections.split(",").filter { it.isNotBlank() }
+                        .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }.toSet()
+                        .ifEmpty { setOf(existing.record.protection) },
+                    rating = existing.record.rating,
+                    moodTag = existing.record.moodTags,
+                    place = existing.record.place,
+                    positions = existing.record.positions.split(",").filter { it.isNotBlank() },
+                    toys = existing.record.toys.split(",").filter { it.isNotBlank() },
+                    note = existing.record.note,
+                    startTime = existing.record.startTime,
+                    endTime = existing.record.endTime,
+                )
+            }
+        } else {
+            // 从首页「开始」进入时可能已有进行中记录
+            viewModelScope.launch {
+                val ongoing = recordRepository.ongoingRecord()
+                if (ongoing != null) {
+                    state = state.copy(
+                        recordId = ongoing.id,
+                        startTime = ongoing.startTime,
+                        ongoing = true,
+                    )
+                }
+            }
+        }
+    }
+
+    fun onSelectionChange(ids: Set<Long>) {
+        state = state.copy(selectedIds = ids)
+    }
+
+    fun toggleProtection(p: Protection) {
+        state = state.copy(protections = state.protections.let { if (p in it) it - p else it + p })
+    }
+    fun setRating(r: Int) { state = state.copy(rating = if (state.rating == r) 0 else r) }
+    fun setPlace(p: Place) { state = state.copy(place = p) }
+    fun setMood(tag: String) { state = state.copy(moodTag = if (state.moodTag == tag) "" else tag) }
+
+    /** 勾选/取消一个受管标签；同时写库（首次使用自动入库），记录侧自由文本 */
+    fun togglePosition(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch { db.tagDao().insertIgnore("position", name.trim()) }
+        state = state.copy(
+            positions = if (name in state.positions) state.positions - name else state.positions + name,
+        )
+    }
+    fun toggleToy(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch { db.tagDao().insertIgnore("toy", name.trim()) }
+        state = state.copy(
+            toys = if (name in state.toys) state.toys - name else state.toys + name,
+        )
+    }
+    fun setNote(n: String) { state = state.copy(note = n) }
+
+    /** 调整开始时间（仅未在计时中时可改） */
+    fun setStart(hour: Int, minute: Int) {
+        if (state.ongoing) return
+        val zoned = Instant.ofEpochMilli(state.startTime).atZone(ZoneId.systemDefault())
+        val newStart = zoned.withHour(hour).withMinute(minute).toInstant().toEpochMilli()
+        state = state.copy(startTime = newStart)
+    }
+
+    /** 持续分钟数（基于开始时间推算 endTime） */
+    fun setDurationMinutes(min: Int) {
+        if (state.ongoing) return
+        state = state.copy(endTime = state.startTime + min * 60_000L)
+    }
+
+    val durationMinutes: Int
+        get() = state.endTime?.let { ((it - state.startTime) / 60_000L).toInt() } ?: 0
+
+    /** 结束进行中的计时并以当前表单保存 */
+    fun finishNow() {
+        viewModelScope.launch {
+            val end = System.currentTimeMillis()
+            recordRepository.finishOngoing(end)
+            state = state.copy(endTime = end, ongoing = false)
+            save()
+        }
+    }
+
+    fun save() {
+        viewModelScope.launch {
+            val ids = state.selectedIds.toList()
+            saveUseCase(
+                RecordDraft(
+                    recordId = if (state.ongoing) state.recordId else if (recordId != 0L) recordId else 0,
+                    partnerIds = ids,
+                    primaryPartnerId = ids.firstOrNull(),
+                    startTime = state.startTime,
+                    endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis(),
+                    protections = state.protections.toList(),
+                    rating = state.rating,
+                    moodTag = state.moodTag,
+                    place = state.place,
+                    positions = state.positions,
+                    toys = state.toys,
+                    note = state.note,
+                )
+            )
+            state = state.copy(saved = true)
+        }
+    }
+
+    fun delete() {
+        viewModelScope.launch {
+            recordRepository.delete(state.recordId)
+            state = state.copy(saved = true)
+        }
+    }
+}

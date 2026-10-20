@@ -1,0 +1,13 @@
+# build outputs
+build/
+.gradle/
+app/build/
+local.properties 2>/dev/null
+
+# IDE
+.idea/
+*.iml
+
+# 验证产物
+artifacts/
+build_log.txt

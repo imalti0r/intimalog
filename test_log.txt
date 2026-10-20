@@ -1,0 +1,86 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: testDebugUnitTest
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltCollectClassesDebug UP-TO-DATE
+> Task :app:packageDebugUnitTestForUnitTest
+> Task :app:hiltAggregateDepsDebug UP-TO-DATE
+> Task :app:hiltJavaCompileDebug UP-TO-DATE
+> Task :app:transformDebugClassesWithAsm UP-TO-DATE
+
+> Task :app:mergeDebugUnitTestManifest
+E:\Folders\Trea\intimalog\app\src\main\AndroidManifest.xml:101:13-104:39 Warning:
+	meta-data#androidx.work.WorkManagerInitializer was tagged at AndroidManifest.xml:101 to remove other declarations but no other declaration present
+
+> Task :app:processDebugUnitTestManifest
+> Task :app:generateDebugUnitTestConfig
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltCollectClassesDebugUnitTest
+> Task :app:processDebugUnitTestJavaRes
+> Task :app:hiltAggregateDepsDebugUnitTest
+> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :app:transformDebugUnitTestClassesWithAsm
+
+> Task :app:testDebugUnitTest
+
+StatsLogicTest > duration formatter FAILED
+    org.junit.ComparisonFailure at StatsLogicTest.kt:65
+
+StatsLogicTest > person-time basis counts participantCount FAILED
+    java.lang.AssertionError at StatsLogicTest.kt:34
+
+StatsLogicTest > combination ranking orders by session count FAILED
+    java.lang.AssertionError at StatsLogicTest.kt:135
+
+StatsLogicTest > duration simple FAILED
+    java.lang.AssertionError at StatsLogicTest.kt:44
+
+StatsLogicTest > duration cross midnight FAILED
+    java.lang.AssertionError at StatsLogicTest.kt:54
+
+12 tests completed, 5 failed
+
+> Task :app:testDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testDebugUnitTest'.
+> There were failing tests. See the report at: file:///E:/Folders/Trea/intimalog/app/build/reports/tests/testDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 58s
+38 actionable tasks: 13 executed, 25 up-to-date
+Configuration cache entry stored.

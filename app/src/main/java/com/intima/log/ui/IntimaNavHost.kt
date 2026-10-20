@@ -1,0 +1,209 @@
+package com.intima.log.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text as M3Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+import com.intima.log.ui.calendar.CalendarScreen
+import com.intima.log.ui.home.HomeScreen
+import com.intima.log.ui.lock.AppLockGate
+import com.intima.log.ui.me.MeScreen
+import com.intima.log.ui.onboarding.OnboardingScreen
+import com.intima.log.ui.partner.CombinationDetailScreen
+import com.intima.log.ui.partner.CombinationListScreen
+import com.intima.log.ui.partner.PartnerListScreen
+import com.intima.log.ui.record.RecordEditScreen
+import com.intima.log.ui.me.TagsManageScreen
+import com.intima.log.ui.settings.BackupScreen
+import com.intima.log.ui.settings.SettingsScreen
+import com.intima.log.ui.stats.StatsScreen
+import com.intima.log.ui.template.TemplateScreen
+import com.intima.log.ui.theme.LocalIntimaPalette
+
+/** 路由表 */
+object Routes {
+    const val HOME = "home"
+    const val STATS = "stats"
+    const val ME = "me"
+    const val CALENDAR = "calendar"
+    const val PARTNERS = "partners"
+    const val TEMPLATES = "templates"
+    const val SETTINGS = "settings"
+    const val BACKUP = "backup"
+    const val POSITIONS = "positions"
+    const val TOYS = "toys"
+    const val COMBINATIONS = "combinations"
+    const val RECORD_EDIT = "record_edit?recordId={recordId}"
+    const val COMBINATION_DETAIL = "combination_detail/{partnerIds}"
+
+    fun recordEdit(recordId: Long = 0) = "record_edit?recordId=$recordId"
+    fun combinationDetail(partnerIds: List<Long>) =
+        "combination_detail/${partnerIds.joinToString(",")}"
+}
+
+/** 底部导航的三 个主 Tab */
+private data class MainTab(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+)
+
+private val MAIN_TABS = listOf(
+    MainTab(Routes.HOME, "首页", Icons.Rounded.Home),
+    MainTab(Routes.CALENDAR, "日历", Icons.Rounded.CalendarMonth),
+    MainTab(Routes.STATS, "统计", Icons.Rounded.BarChart),
+    MainTab(Routes.ME, "我的", Icons.Rounded.Person),
+)
+
+@Composable
+fun IntimaNavHost() {
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = currentRoute in MAIN_TABS.map { it.route }
+
+    Column(modifier = Modifier.fillMaxSize().background(LocalIntimaPalette.current.bg)) {
+        NavHost(
+            navController = navController,
+            startDestination = Routes.HOME,
+            modifier = Modifier
+                .weight(1f)
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        ) {
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onNavigate = { route -> navController.navigate(route) },
+                    onStartEdit = { id -> navController.navigate(Routes.recordEdit(id)) },
+                )
+            }
+            composable(Routes.STATS) { StatsScreen() }
+            composable(Routes.ME) {
+                MeScreen(
+                    onNavigate = { route -> navController.navigate(route) },
+                )
+            }
+            composable(Routes.CALENDAR) {
+                CalendarScreen(onEditRecord = { id -> navController.navigate(Routes.recordEdit(id)) })
+            }
+            composable(Routes.PARTNERS) {
+                PartnerListScreen(
+                    onOpenCombinations = { navController.navigate(Routes.COMBINATIONS) }
+                )
+            }
+            composable(Routes.TEMPLATES) { TemplateScreen() }
+            composable(Routes.SETTINGS) { SettingsScreen() }
+            composable(Routes.BACKUP) { BackupScreen() }
+            composable(Routes.POSITIONS) {
+                TagsManageScreen(title = "体位管理", kind = "position", onBack = { navController.popBackStack() })
+            }
+            composable(Routes.TOYS) {
+                TagsManageScreen(title = "玩具管理", kind = "toy", onBack = { navController.popBackStack() })
+            }
+            composable(Routes.COMBINATIONS) {
+                CombinationListScreen(
+                    onOpen = { ids -> navController.navigate(Routes.combinationDetail(ids)) }
+                )
+            }
+            composable(
+                Routes.RECORD_EDIT,
+                arguments = listOf(navArgument("recordId") {
+                    type = NavType.LongType; defaultValue = 0L
+                })
+            ) {
+                RecordEditScreen(
+                    onDone = { navController.popBackStack() },
+                    onManageTags = { navController.navigate(Routes.POSITIONS) },
+                )
+            }
+            composable(
+                Routes.COMBINATION_DETAIL,
+                arguments = listOf(navArgument("partnerIds") { type = NavType.StringType })
+            ) { entry ->
+                val ids = entry.arguments?.getString("partnerIds")
+                    ?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
+                CombinationDetailScreen(partnerIds = ids)
+            }
+        }
+
+        if (showBottomBar) {
+            BottomNavBar(
+                currentRoute = currentRoute,
+                onSelect = { tab ->
+                    navController.navigate(tab.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+        }
+    }
+}
+
+/** Miuix 风格底部导航栏：白底、胶囊高亮 */
+@Composable
+private fun BottomNavBar(
+    currentRoute: String?,
+    onSelect: (MainTab) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(LocalIntimaPalette.current.card)
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MAIN_TABS.forEach { tab ->
+            val selected = currentRoute == tab.route
+            val tint = if (selected) Color(0xFF3482FF) else LocalIntimaPalette.current.textHint
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onSelect(tab) }
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(tab.icon, contentDescription = tab.label, tint = tint)
+                M3Text(tab.label, fontSize = 11.sp, color = tint)
+            }
+        }
+    }
+}
