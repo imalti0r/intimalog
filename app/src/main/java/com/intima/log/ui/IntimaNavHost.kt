@@ -1,5 +1,11 @@
 package com.intima.log.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -89,6 +95,14 @@ private val MAIN_TABS = listOf(
     MainTab(Routes.ME, "我的", Icons.Rounded.Person),
 )
 
+/** 主 Tab 序号（决定切换方向）；非主 Tab 返回 -1 */
+private fun tabIndex(route: String?) = MAIN_TABS.indexOfFirst { it.route == route }
+
+private val EASE_OUT = CubicBezierEasing(0.25f, 0.8f, 0.25f, 1f)
+private val EASE_IN = CubicBezierEasing(0.4f, 0f, 1f, 1f)
+private const val TAB_DUR = 280
+private const val PAGE_DUR = 300
+
 @Composable
 fun IntimaNavHost() {
     val navController = rememberNavController()
@@ -103,6 +117,36 @@ fun IntimaNavHost() {
             modifier = Modifier
                 .weight(1f)
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+            // 统一过渡策略（initialState/targetState 都能拿到 route）：
+            // 1) 主 Tab → 主 Tab：整页按 Tab 序号方向滑动（跨多 Tab 一次滑到位）
+            // 2) 一级 → 二级：二级从右滑入覆盖，一级静止
+            // 3) 返回：二级向右滑出，露出静止的一级页
+            enterTransition = {
+                val from = initialState.destination.route
+                val to = targetState.destination.route
+                when {
+                    tabIndex(from) >= 0 && tabIndex(to) >= 0 ->
+                        slideInHorizontally(tween(TAB_DUR, easing = EASE_OUT)) { full ->
+                            if (tabIndex(to) > tabIndex(from)) full else -full
+                        }
+                    else -> slideInHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { it }
+                }
+            },
+            exitTransition = {
+                val from = initialState.destination.route
+                val to = targetState.destination.route
+                when {
+                    tabIndex(from) >= 0 && tabIndex(to) >= 0 ->
+                        slideOutHorizontally(tween(TAB_DUR, easing = EASE_OUT)) { full ->
+                            if (tabIndex(to) > tabIndex(from)) -full else full
+                        }
+                    else -> ExitTransition.None   // 一级页保持不动，被二级覆盖
+                }
+            },
+            popEnterTransition = { EnterTransition.None },     // 返回时一级页静止露出
+            popExitTransition = {
+                slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN)) { it }
+            },
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
