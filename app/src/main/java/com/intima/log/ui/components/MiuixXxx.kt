@@ -247,6 +247,8 @@ fun MiuixDatePickerDialog(
     var year by remember(show) { mutableStateOf(initialDate.year) }
     var month by remember(show) { mutableStateOf(initialDate.monthValue) }
     var day by remember(show) { mutableStateOf(initialDate.dayOfMonth) }
+    val minYear = 2000
+    val maxYear = java.time.LocalDate.now().plusYears(1).year
 
     fun clampDay() {
         val maxDay = java.time.YearMonth.of(year, month).lengthOfMonth()
@@ -268,6 +270,16 @@ fun MiuixDatePickerDialog(
                 title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = palette.text,
                 modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
             )
+            // 可选范围提示（日期上下限）
+            M3Text(
+                "可选范围 $minYear ~ $maxYear 年",
+                fontSize = 11.sp,
+                color = palette.textHint,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -279,7 +291,7 @@ fun MiuixDatePickerDialog(
                     modifier = Modifier.weight(1f),
                     unit = "年",
                     value = year,
-                    range = 2000..java.time.LocalDate.now().plusYears(1).year,
+                    range = minYear..maxYear,
                     onValueChange = { year = it; clampDay() },
                 )
                 WheelColumn(

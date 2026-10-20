@@ -362,6 +362,12 @@ fun RecordEditScreen(
                     .padding(20.dp),
             ) {
                 M3Text("持续时间", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.text)
+                M3Text(
+                    "可选范围 1 ~ 1440 分钟（24 小时）",
+                    fontSize = 11.sp,
+                    color = palette.textHint,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
                 Spacer(Modifier.height(12.dp))
                 durations.chunked(3).forEach { rowItems ->
                     Row(
@@ -401,9 +407,16 @@ fun RecordEditScreen(
                     MiuixTextField(
                         value = customText,
                         onValueChange = { customText = it.filter { c -> c.isDigit() }.take(4) },
-                        label = "自定义分钟（≤1440）",
+                        label = "自定义分钟",
                         modifier = Modifier.weight(1f),
                     )
+                    if ((customText.toIntOrNull() ?: 1) > RecordEditViewModel.MAX_DURATION_MINUTES) {
+                        M3Text(
+                            "最大 1440 分钟",
+                            fontSize = 11.sp,
+                            color = Color(0xFFE94634),
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
