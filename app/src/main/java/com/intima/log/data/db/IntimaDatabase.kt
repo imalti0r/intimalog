@@ -32,7 +32,7 @@ class Converters {
         SceneTemplate::class,
         CustomTagEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 
@@ -56,7 +56,7 @@ abstract class IntimaDatabase : RoomDatabase() {
             System.loadLibrary("sqlcipher")
             return Room.databaseBuilder(context, IntimaDatabase::class.java, DB_NAME)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .fallbackToDestructiveMigration(false)
                 .build()
         }
@@ -102,5 +102,13 @@ val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
             "UPDATE sex_records SET protections = 'PILL_URGENT' " +
                 "WHERE protections = 'PILL' OR protections LIKE 'PILL,%' OR protections LIKE '%,PILL' OR protections LIKE '%,PILL,%'"
         )
+    }
+}
+
+/** v4→v5：records 增加自定义保护措施 / 自定义地点列 */
+val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sex_records ADD COLUMN customProtections TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE sex_records ADD COLUMN customPlaces TEXT NOT NULL DEFAULT ''")
     }
 }

@@ -30,14 +30,18 @@ data class RecordEditState(
     val selectedIds: Set<Long> = emptySet(),
     val multiPartner: Boolean = true,
     val ongoing: Boolean = false,
-    val protections: Set<Protection> = emptySet(),  // 多选保护措施
+    val protections: Set<Protection> = emptySet(),  // 多选保护措施（预置枚举）
+    val customProtections: Set<String> = emptySet(), // 自定义保护措施（管理页维护）
     val rating: Int = 0,
     val moodTag: String = "",                        // 情绪（单选）
-    val place: Place = Place.NOT_RECORDED,
+    val place: Place = Place.NOT_RECORDED,          // 预置地点（单选）
+    val customPlaces: Set<String> = emptySet(),      // 自定义地点（多选）
     val positions: List<String> = emptyList(),       // 自定义体位
     val toys: List<String> = emptyList(),            // 自定义玩具
-    val knownPositions: List<String> = emptyList(),  // 历史用过的体位（去重）
-    val knownToys: List<String> = emptyList(),       // 历史用过的玩具
+    val knownPositions: List<String> = emptyList(),  // 体位管理页维护的标签
+    val knownToys: List<String> = emptyList(),       // 玩具管理页维护的标签
+    val knownCustomProtections: List<String> = emptyList(), // 自定义保护措施标签
+    val knownCustomPlaces: List<String> = emptyList(),      // 自定义地点标签
     val note: String = "",
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long? = null,
@@ -79,7 +83,7 @@ class RecordEditViewModel @Inject constructor(
             val profile = profileRepository.profile.first()
             state = state.copy(multiPartner = profile.enableMultiPartner)
         }
-        // 管理页维护的体位 / 玩具标签
+        // 管理页维护的体位 / 玩具 / 自定义保护措施 / 自定义地点
         viewModelScope.launch {
             db.tagDao().observeKind("position").collect { list ->
                 state = state.copy(knownPositions = list.map { it.name })
@@ -90,6 +94,16 @@ class RecordEditViewModel @Inject constructor(
                 state = state.copy(knownToys = list.map { it.name })
             }
         }
+        viewModelScope.launch {
+            db.tagDao().observeKind("protection").collect { list ->
+                state = state.copy(knownCustomProtections = list.map { it.name })
+            }
+        }
+        viewModelScope.launch {
+            db.tagDao().observeKind("place").collect { list ->
+                state = state.copy(knownCustomPlaces = list.map { it.name })
+            }
+        }
         if (recordId != 0L) {
             viewModelScope.launch {
                 val existing = recordRepository.byId(recordId) ?: return@launch
@@ -98,9 +112,11 @@ class RecordEditViewModel @Inject constructor(
                     protections = existing.record.protections.split(",").filter { it.isNotBlank() }
                         .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }.toSet()
                         .ifEmpty { setOf(existing.record.protection) },
+                    customProtections = existing.record.customProtections.split(",").filter { it.isNotBlank() }.toSet(),
                     rating = existing.record.rating,
                     moodTag = existing.record.moodTags,
                     place = existing.record.place,
+                    customPlaces = existing.record.customPlaces.split(",").filter { it.isNotBlank() }.toSet(),
                     positions = existing.record.positions.split(",").filter { it.isNotBlank() },
                     toys = existing.record.toys.split(",").filter { it.isNotBlank() },
                     note = existing.record.note,
@@ -131,7 +147,13 @@ class RecordEditViewModel @Inject constructor(
         state = state.copy(protections = state.protections.let { if (p in it) it - p else it + p })
     }
     fun setRating(r: Int) { state = state.copy(rating = if (state.rating == r) 0 else r) }
-    fun setPlace(p: Place) { state = state.copy(place = p) }
+    fun setPlace(p: Place) { state = state.copy(place = if (state.place == p) Place.NOT_RECORDED else p) }
+    fun toggleCustomPlace(name: String) {
+        state = state.copy(customPlaces = state.customPlaces.let { if (name in it) it - name else it + name })
+    }
+    fun toggleCustomProtection(name: String) {
+        state = state.copy(customProtections = state.customProtections.let { if (name in it) it - name else it + name })
+    }
     fun setMood(tag: String) { state = state.copy(moodTag = if (state.moodTag == tag) "" else tag) }
 
     /** 勾选/取消一个受管标签；同时写库（首次使用自动入库），记录侧自由文本 */
@@ -189,9 +211,11 @@ class RecordEditViewModel @Inject constructor(
                     startTime = state.startTime,
                     endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis(),
                     protections = state.protections.toList(),
+                    customProtections = state.customProtections.toList(),
                     rating = state.rating,
                     moodTag = state.moodTag,
                     place = state.place,
+                    customPlaces = state.customPlaces.toList(),
                     positions = state.positions,
                     toys = state.toys,
                     note = state.note,

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -77,7 +79,7 @@ fun Place.label(): String = when (this) {
 @Composable
 fun RecordEditScreen(
     onDone: () -> Unit,
-    onManageTags: () -> Unit = {},
+    onManageTags: (String) -> Unit = {},
     viewModel: RecordEditViewModel = hiltViewModel(),
 ) {
     val state = viewModel.state
@@ -155,8 +157,10 @@ fun RecordEditScreen(
             }
         }
 
-        // 参与者
-        SectionTitle("参与者" + if (!state.multiPartner) "（单人模式）" else "（可多选）")
+        // 参与者（➕ 跳伴侣管理）
+        SectionTitleWithAdd("参与者" + if (!state.multiPartner) "（单人模式）" else "（可多选）") {
+            onManageTags("partner")
+        }
         Column(modifier = Modifier.fillMaxWidth()) {
             if (state.partners.isEmpty()) {
                 M3Text(
@@ -182,8 +186,8 @@ fun RecordEditScreen(
             }
         }
 
-        // 保护措施（多选）
-        SectionTitle("保护措施（可多选）")
+        // 保护措施（预置枚举多选 + 自定义多选；➕ 跳自定义保护措施管理）
+        SectionTitleWithAdd("保护措施（可多选）") { onManageTags("protection") }
         ChipFlow(
             items = Protection.entries.map { it.name },
             selected = state.protections.map { it.name }.toSet(),
@@ -191,27 +195,33 @@ fun RecordEditScreen(
             onToggle = { n -> viewModel.toggleProtection(runCatching { Protection.valueOf(n) }.getOrNull() ?: return@ChipFlow) },
             emptyText = "",
         )
+        if (state.knownCustomProtections.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            ChipFlow(
+                items = state.knownCustomProtections,
+                selected = state.customProtections,
+                onToggle = { viewModel.toggleCustomProtection(it) },
+                emptyText = "",
+            )
+        }
 
         // 体位（管理页维护的标签，多选；末尾入口跳管理页）
-        SectionTitle("体位")
+        // 体位（管理页维护的标签，多选；➕ 跳管理页）
+        SectionTitleWithAdd("体位") { onManageTags("position") }
         ChipFlow(
             items = state.knownPositions,
             selected = state.positions.toSet(),
             onToggle = { viewModel.togglePosition(it) },
-            emptyText = "还没有体位，去「我的 → 体位管理」添加",
-            manageHint = "管理",
-            onManageTags = { onManageTags() },
+            emptyText = "暂无体位，点右上 ➕ 添加",
         )
 
-        // 玩具（管理页维护的标签，多选）
-        SectionTitle("玩具")
+        // 玩具（管理页维护的标签，多选；➕ 跳管理页）
+        SectionTitleWithAdd("玩具") { onManageTags("toy") }
         ChipFlow(
             items = state.knownToys,
             selected = state.toys.toSet(),
             onToggle = { viewModel.toggleToy(it) },
-            emptyText = "还没有玩具，去「我的 → 玩具管理」添加",
-            manageHint = "管理",
-            onManageTags = { onManageTags() },
+            emptyText = "暂无玩具，点右上 ➕ 添加",
         )
 
         // 满意度
@@ -250,18 +260,25 @@ fun RecordEditScreen(
             }
         }
 
-        // 地点
-        SectionTitle("地点")
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(Place.HOME, Place.HOTEL, Place.OTHER).forEach { place ->
-                    SelectableChip(
-                        text = place.label(),
-                        selected = state.place == place,
-                        onClick = { viewModel.setPlace(place) },
-                    )
-                }
-            }
+        // 地点（预置单选 + 自定义多选；➕ 跳自定义地点管理）
+        SectionTitleWithAdd("地点") { onManageTags("place") }
+        ChipFlow(
+            items = listOf(Place.HOME, Place.HOTEL, Place.OTHER).map { it.name },
+            selected = if (state.place == Place.NOT_RECORDED) emptySet() else setOf(state.place.name),
+            labelOf = { n -> runCatching { Place.valueOf(n) }.getOrNull()?.label() ?: n },
+            onToggle = { n ->
+                runCatching { Place.valueOf(n) }.getOrNull()?.let { viewModel.setPlace(it) }
+            },
+            emptyText = "",
+        )
+        if (state.knownCustomPlaces.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            ChipFlow(
+                items = state.knownCustomPlaces,
+                selected = state.customPlaces,
+                onToggle = { viewModel.toggleCustomPlace(it) },
+                emptyText = "",
+            )
         }
 
         // 备注
@@ -410,6 +427,33 @@ private fun SectionTitle(text: String) {
         fontWeight = FontWeight.SemiBold,
         color = LocalIntimaPalette.current.textSub,
     )
+}
+
+/** 标题 + 右侧 ➕ 自定义管理入口 */
+@Composable
+private fun SectionTitleWithAdd(text: String, onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        M3Text(
+            text,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = LocalIntimaPalette.current.textSub,
+        )
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(LocalIntimaPalette.current.chipBg)
+                .clickable(onClick = onAdd),
+            contentAlignment = Alignment.Center,
+        ) {
+            M3Text("＋", fontSize = 15.sp, color = LocalIntimaPalette.current.text)
+        }
+    }
 }
 
 @Composable

@@ -14,10 +14,12 @@ data class RecordDraft(
     val endTime: Long? = null,
     val protection: com.intima.log.data.db.Protection = com.intima.log.data.db.Protection.NOT_RECORDED,
     val protections: List<com.intima.log.data.db.Protection> = emptyList(), // 多选保护措施
+    val customProtections: List<String> = emptyList(),  // 自定义保护措施名
     val climax: Int = -1,
     val rating: Int = 0,
     val moodTag: String = "",             // 情绪（单选）
     val place: com.intima.log.data.db.Place = com.intima.log.data.db.Place.NOT_RECORDED,
+    val customPlaces: List<String> = emptyList(),       // 自定义地点名
     val positions: List<String> = emptyList(),  // 自定义体位
     val toys: List<String> = emptyList(),       // 自定义玩具
     val note: String = "",

@@ -72,6 +72,8 @@ object Routes {
     const val BACKUP = "backup"
     const val POSITIONS = "positions"
     const val TOYS = "toys"
+    const val PROTECTIONS = "protections"
+    const val PLACES = "places"
     const val COMBINATIONS = "combinations"
     const val RECORD_EDIT = "record_edit?recordId={recordId}"
     const val COMBINATION_DETAIL = "combination_detail/{partnerIds}"
@@ -177,6 +179,12 @@ fun IntimaNavHost() {
             composable(Routes.TOYS) {
                 TagsManageScreen(title = "玩具管理", kind = "toy", onBack = { navController.popBackStack() })
             }
+            composable(Routes.PROTECTIONS) {
+                TagsManageScreen(title = "保护措施管理", kind = "protection", onBack = { navController.popBackStack() })
+            }
+            composable(Routes.PLACES) {
+                TagsManageScreen(title = "地点管理", kind = "place", onBack = { navController.popBackStack() })
+            }
             composable(Routes.COMBINATIONS) {
                 CombinationListScreen(
                     onOpen = { ids -> navController.navigate(Routes.combinationDetail(ids)) }
@@ -190,7 +198,17 @@ fun IntimaNavHost() {
             ) {
                 RecordEditScreen(
                     onDone = { navController.popBackStack() },
-                    onManageTags = { navController.navigate(Routes.POSITIONS) },
+                    onManageTags = { kind ->
+                        navController.navigate(
+                            when (kind) {
+                                "toy" -> Routes.TOYS
+                                "partner" -> Routes.PARTNERS
+                                "protection" -> Routes.PROTECTIONS
+                                "place" -> Routes.PLACES
+                                else -> Routes.POSITIONS
+                            }
+                        )
+                    },
                 )
             }
             composable(

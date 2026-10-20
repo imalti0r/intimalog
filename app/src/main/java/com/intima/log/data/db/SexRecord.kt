@@ -24,6 +24,8 @@ data class SexRecord(
     val moodTags: String = "",            // 单个情绪标签（单选）
     val place: Place = Place.NOT_RECORDED,
     val protections: String = "",         // 逗号分隔的多选保护措施（Protection.name）
+    val customProtections: String = "",   // 逗号分隔的自定义保护措施名
+    val customPlaces: String = "",        // 逗号分隔的自定义地点名
     val positions: String = "",           // 逗号分隔的自定义体位
     val toys: String = "",                // 逗号分隔的自定义玩具
     val note: String = "",

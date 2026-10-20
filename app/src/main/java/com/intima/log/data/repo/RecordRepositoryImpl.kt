@@ -50,6 +50,8 @@ class RecordRepositoryImpl @Inject constructor(
             moodTags = draft.moodTag,
             place = draft.place,
             protections = draft.protections.joinToString(",") { it.name },
+            customProtections = draft.customProtections.joinToString(","),
+            customPlaces = draft.customPlaces.joinToString(","),
             positions = draft.positions.joinToString(","),
             toys = draft.toys.joinToString(","),
             note = draft.note,

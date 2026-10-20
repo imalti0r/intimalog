@@ -50,6 +50,8 @@ data class BackupRecord(
     val rating: Int = 0,
     val moodTags: String = "",
     val protections: String = "",   // 逗号分隔 Protection.name（v3 备份起）
+    val customProtections: String = "",  // 逗号分隔自定义保护措施（v5 备份起）
+    val customPlaces: String = "",       // 逗号分隔自定义地点（v5 备份起）
     val positions: String = "",
     val toys: String = "",
     val place: String = "NOT_RECORDED",
@@ -81,6 +83,8 @@ class BackupManager @Inject constructor(
                 rating = r.record.rating,
                 moodTags = r.record.moodTags,
                 protections = r.record.protections,
+                customProtections = r.record.customProtections,
+                customPlaces = r.record.customPlaces,
                 positions = r.record.positions,
                 toys = r.record.toys,
                 place = r.record.place.name,
@@ -145,9 +149,11 @@ class BackupManager @Inject constructor(
                             else -> runCatching { Protection.valueOf(n) }.getOrNull()
                         }
                     },
+                customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
                 positions = br.positions.split(",").filter { it.isNotBlank() },
                 toys = br.toys.split(",").filter { it.isNotBlank() },
                 place = runCatching { Place.valueOf(br.place) }.getOrDefault(Place.NOT_RECORDED),
+                customPlaces = br.customPlaces.split(",").filter { it.isNotBlank() },
                 note = br.note,
                 isBackfill = true,
             )
