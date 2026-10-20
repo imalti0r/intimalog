@@ -2,7 +2,6 @@ package com.intima.log.ui.record
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,12 +20,12 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text as M3Text
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,37 +33,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.intima.log.data.db.MoodTags
-import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Place
+import com.intima.log.ui.components.MiuixChip
+import com.intima.log.ui.components.MiuixConfirmDialog
+import com.intima.log.ui.components.MiuixDatePickerDialog
+import com.intima.log.ui.components.MiuixTextField
+import com.intima.log.ui.components.MiuixTimePickerDialog
 import com.intima.log.ui.components.PartnerMultiSelect
+import com.intima.log.ui.theme.LocalIntimaPalette
 import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import com.intima.log.ui.theme.LocalIntimaPalette
 
 private val hm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val ymd: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-/** 保护措施中文名 */
-
-fun Place.label(): String = when (this) {
-    Place.HOME -> "家"
-    Place.HOTEL -> "酒店"
-    Place.OTHER -> "其他"
-    Place.NOT_RECORDED -> "未记录"
-}
-/** 记录编辑 / 新建页 */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+/**
+ * 记录编辑 / 新建页。
+ * 功能①：发生日期可选（Miuix 滚轮日期选择器，状态存 ViewModel SavedStateHandle）。
+ * 功能②：拆分组进入时载入整组区间，保存自动重拆；删除联动整组。
+ */
 @Composable
 fun RecordEditScreen(
     onDone: () -> Unit,
@@ -72,37 +66,68 @@ fun RecordEditScreen(
     viewModel: RecordEditViewModel = hiltViewModel(),
 ) {
     val state = viewModel.state
-    var showStartPicker by remember { mutableStateOf(false) }
-    var showDurationPicker by remember { mutableStateOf(false) }
+    val palette = LocalIntimaPalette.current
+    var showStartPicker by rememberSaveable { mutableStateOf(false) }
+    var showDurationPicker by rememberSaveable { mutableStateOf(false) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var deleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LocalIntimaPalette.current.bg)
+            .background(palette.bg)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "返回",
+                tint = palette.text,
+                modifier = Modifier
+                    .size(26.dp)
+                    .clickable { onDone() },
+            )
             M3Text(
                 if (state.recordId == 0L) "新的记录" else "编辑记录",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
+                color = palette.text,
+                modifier = Modifier.padding(start = 10.dp),
             )
             Spacer(Modifier.weight(1f))
             M3Text(
                 state.startTimeText,
                 fontSize = 13.sp,
-                color = LocalIntimaPalette.current.textHint,
+                color = palette.textHint,
             )
+        }
+
+        // 拆分组提示（功能②）：合并编辑整组
+        if (state.isSplitGroup) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(palette.chipBg)
+                    .padding(12.dp),
+            ) {
+                M3Text(
+                    "该记录跨日拆分为多条，正在合并编辑整组；保存后按新时间重新拆分",
+                    fontSize = 13.sp,
+                    color = palette.textSub,
+                    lineHeight = 19.sp,
+                )
+            }
         }
 
         // 进行中提示
         if (state.ongoing) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                M3Text("⏱ 计时进行中 · 已 ${state.elapsedText}", fontSize = 14.sp)
+                M3Text("⏱ 计时进行中 · 已 ${state.elapsedText}", fontSize = 14.sp, color = palette.text)
                 Button(
                     modifier = Modifier
                         .padding(top = 8.dp)
@@ -111,8 +136,8 @@ fun RecordEditScreen(
                 ) { M3Text("结束并保存", color = Color.White) }
             }
         } else {
-            // 开始时间 + 持续时间（补录 / 编辑时可调；计时中的记录不可改）
-            SectionTitle("开始时间")
+            // 发生日期 + 开始时间 + 持续时间（功能①：日期选择器）
+            SectionTitle("发生时间")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -121,27 +146,40 @@ fun RecordEditScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
-                        .background(LocalIntimaPalette.current.card)
-                        .clickable { showStartPicker = true }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .background(palette.card)
+                        .clickable { showDatePicker = true }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     M3Text(
-                        java.time.Instant.ofEpochMilli(state.startTime).atZone(java.time.ZoneId.systemDefault())
-                            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        Instant.ofEpochMilli(state.startTime)
+                            .atZone(ZoneId.systemDefault()).toLocalDate().format(ymd),
+                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.text,
                     )
                 }
-                M3Text("持续", fontSize = 14.sp, color = LocalIntimaPalette.current.textSub)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
-                        .background(LocalIntimaPalette.current.card)
+                        .background(palette.card)
+                        .clickable { showStartPicker = true }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    M3Text(
+                        Instant.ofEpochMilli(state.startTime)
+                            .atZone(ZoneId.systemDefault()).format(hm),
+                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.text,
+                    )
+                }
+                M3Text("持续", fontSize = 14.sp, color = palette.textSub)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(palette.card)
                         .clickable { showDurationPicker = true }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     M3Text(
                         viewModel.durationMinutes.let { if (it > 0) "${it} 分钟" else "点选" },
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.text,
                     )
                 }
             }
@@ -156,7 +194,7 @@ fun RecordEditScreen(
                 M3Text(
                     "还没有伴侣档案，可跳过保存为「未指定」",
                     fontSize = 13.sp,
-                    color = LocalIntimaPalette.current.textHint,
+                    color = palette.textHint,
                 )
             } else {
                 PartnerMultiSelect(
@@ -176,7 +214,7 @@ fun RecordEditScreen(
             }
         }
 
-        // 保护措施（完全自定义：从保护措施管理页读取，多选；➕ 跳管理页）
+        // 保护措施
         SectionTitleWithAdd("保护措施") { onManageTags("protection") }
         ChipFlow(
             items = state.knownCustomProtections,
@@ -185,8 +223,7 @@ fun RecordEditScreen(
             emptyText = "暂无保护措施，点右上 ➕ 添加",
         )
 
-        // 体位（管理页维护的标签，多选；末尾入口跳管理页）
-        // 体位（管理页维护的标签，多选；➕ 跳管理页）
+        // 体位
         SectionTitleWithAdd("体位") { onManageTags("position") }
         ChipFlow(
             items = state.knownPositions,
@@ -195,7 +232,7 @@ fun RecordEditScreen(
             emptyText = "暂无体位，点右上 ➕ 添加",
         )
 
-        // 玩具（管理页维护的标签，多选；➕ 跳管理页）
+        // 玩具
         SectionTitleWithAdd("玩具") { onManageTags("toy") }
         ChipFlow(
             items = state.knownToys,
@@ -206,41 +243,45 @@ fun RecordEditScreen(
 
         // 满意度
         SectionTitle("满意度")
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                (1..5).forEach { star ->
-                    Box(
-                        modifier = Modifier
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .clickable { viewModel.setRating(star) }
-                            .padding(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Rounded.Star,
-                            contentDescription = "$star 星",
-                            tint = if (star <= state.rating) Color(0xFFFFB300) else LocalIntimaPalette.current.textHint.copy(alpha = 0.4f),
-                            modifier = Modifier.height(32.dp).width(32.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        // 情绪标签（单选）
-        SectionTitle("情绪")
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MoodTags.ALL.forEach { tag ->
-                    SelectableChip(
-                        text = tag,
-                        selected = tag == state.moodTag,
-                        onClick = { viewModel.setMood(tag) },
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            (1..5).forEach { star ->
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { viewModel.setRating(star) }
+                        .padding(4.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.Star,
+                        contentDescription = "$star 星",
+                        tint = if (star <= state.rating) Color(0xFFFFB300) else palette.textHint.copy(alpha = 0.4f),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
             }
         }
 
-        // 地点（完全自定义：从地点管理页读取，多选；➕ 跳管理页）
+        // 高潮次数（按参与者选择顺序 + 「我」，加减号记录；统计页汇总展示）
+        ClimaxSection(
+            selectedIds = state.selectedIds.toList(),
+            partners = state.partners,
+            climaxes = state.climaxes,
+            onBump = viewModel::bumpClimax,
+        )
+
+        // 情绪标签（单选）
+        SectionTitle("情绪")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MoodTags.ALL.forEach { tag ->
+                MiuixChip(
+                    text = tag,
+                    selected = tag == state.moodTag,
+                    onClick = { viewModel.setMood(tag) },
+                )
+            }
+        }
+
+        // 地点
         SectionTitleWithAdd("地点") { onManageTags("place") }
         ChipFlow(
             items = state.knownCustomPlaces,
@@ -250,11 +291,10 @@ fun RecordEditScreen(
         )
 
         // 备注
-        TextField(
+        MiuixTextField(
             value = state.note,
             onValueChange = viewModel::setNote,
             label = "备注（可选）",
-            modifier = Modifier.fillMaxWidth(),
         )
 
         Button(
@@ -270,48 +310,32 @@ fun RecordEditScreen(
         if (state.recordId != 0L) {
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = viewModel::delete,
+                onClick = { deleteConfirm = true },
             ) { M3Text("删除记录", color = Color(0xFFE94634)) }
         }
         Spacer(Modifier.height(40.dp))
     }
 
-    if (showStartPicker) {
-        val initial = java.time.Instant.ofEpochMilli(state.startTime).atZone(java.time.ZoneId.systemDefault())
-        val timeState = rememberTimePickerState(initial.hour, initial.minute, is24Hour = true)
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showStartPicker = false }) {
-            Column(
-                modifier = Modifier
-                    .background(LocalIntimaPalette.current.card, RoundedCornerShape(24.dp))
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                M3Text("开始时间", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(12.dp))
-                androidx.compose.material3.TimePicker(state = timeState)
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(Modifier.weight(1f))
-                    M3Text(
-                        "取消", color = LocalIntimaPalette.current.textHint,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { showStartPicker = false }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                    M3Text(
-                        "确定", color = Color(0xFF3482FF), fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                viewModel.setStart(timeState.hour, timeState.minute)
-                                showStartPicker = false
-                            }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-            }
-        }
-    }
+    // ---- 弹窗区（Miuix 风格）----
+
+    val dateShow = remember { mutableStateOf(false) }
+    LaunchedEffect(showDatePicker) { dateShow.value = showDatePicker }
+    LaunchedEffect(dateShow.value) { showDatePicker = dateShow.value }
+    MiuixDatePickerDialog(
+        show = dateShow,
+        initialDate = Instant.ofEpochMilli(state.startTime).atZone(ZoneId.systemDefault()).toLocalDate(),
+        onConfirm = viewModel::setStartDate,
+    )
+
+    val timeShow = remember { mutableStateOf(false) }
+    LaunchedEffect(showStartPicker) { timeShow.value = showStartPicker }
+    LaunchedEffect(timeShow.value) { showStartPicker = timeShow.value }
+    MiuixTimePickerDialog(
+        show = timeShow,
+        initialHour = Instant.ofEpochMilli(state.startTime).atZone(ZoneId.systemDefault()).hour,
+        initialMinute = Instant.ofEpochMilli(state.startTime).atZone(ZoneId.systemDefault()).minute,
+        onConfirm = viewModel::setStart,
+    )
 
     if (showDurationPicker) {
         val durations = listOf(5, 10, 15, 20, 30, 45, 60, 90, 120)
@@ -319,12 +343,12 @@ fun RecordEditScreen(
         androidx.compose.ui.window.Dialog(onDismissRequest = { showDurationPicker = false }) {
             Column(
                 modifier = Modifier
-                    .background(LocalIntimaPalette.current.card, RoundedCornerShape(24.dp))
+                    .padding(horizontal = 32.dp)
+                    .background(palette.card, RoundedCornerShape(22.dp))
                     .padding(20.dp),
             ) {
-                M3Text("持续时间", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LocalIntimaPalette.current.text)
+                M3Text("持续时间", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.text)
                 Spacer(Modifier.height(12.dp))
-                // 等宽 3 列网格
                 durations.chunked(3).forEach { rowItems ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -336,7 +360,7 @@ fun RecordEditScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (sel) Color(0xFF3482FF) else LocalIntimaPalette.current.chipBg)
+                                    .background(if (sel) MiuixTheme.colorScheme.primary else palette.chipBg)
                                     .clickable {
                                         viewModel.setDurationMinutes(min)
                                         showDurationPicker = false
@@ -347,32 +371,29 @@ fun RecordEditScreen(
                                 M3Text(
                                     "$min 分",
                                     fontSize = 14.sp,
-                                    color = if (sel) Color.White else LocalIntimaPalette.current.text,
+                                    color = if (sel) Color.White else palette.text,
                                 )
                             }
                         }
-                        // 补齐空位保持等宽
                         repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
                     }
                     Spacer(Modifier.height(10.dp))
                 }
-                // 自定义输入
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    androidx.compose.material3.OutlinedTextField(
+                    MiuixTextField(
                         value = customText,
                         onValueChange = { customText = it.filter { c -> c.isDigit() }.take(4) },
-                        placeholder = { M3Text("自定义分钟", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint) },
+                        label = "自定义分钟",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
                     )
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF3482FF))
+                            .background(MiuixTheme.colorScheme.primary)
                             .clickable(enabled = customText.toIntOrNull() in 1..1440) {
                                 viewModel.setDurationMinutes(customText.toInt())
                                 showDurationPicker = false
@@ -385,6 +406,20 @@ fun RecordEditScreen(
             }
         }
     }
+
+    // 删除确认（拆分组时联动删除整组）
+    val delShow = remember { mutableStateOf(false) }
+    LaunchedEffect(deleteConfirm) { delShow.value = deleteConfirm }
+    LaunchedEffect(delShow.value) { deleteConfirm = delShow.value }
+    MiuixConfirmDialog(
+        show = delShow,
+        title = "删除记录？",
+        body = if (state.isSplitGroup) "该记录属于跨日拆分组，删除将移除整组所有分段。"
+        else "删除后不可恢复。",
+        confirmText = "删除",
+        danger = true,
+        onConfirm = viewModel::delete,
+    )
 }
 
 @Composable
@@ -397,9 +432,76 @@ private fun SectionTitle(text: String) {
     )
 }
 
+/** 高潮次数：每人一行（「我」+ 参与者按选择顺序），+/− 按钮记录 */
+@Composable
+private fun ClimaxSection(
+    selectedIds: List<Long>,
+    partners: List<com.intima.log.data.db.Partner>,
+    climaxes: Map<String, Int>,
+    onBump: (String, Int) -> Unit,
+) {
+    val palette = LocalIntimaPalette.current
+    val partnerById = partners.associateBy { it.id }
+    // 展示顺序：「我」→ 参与者按选择顺序
+    val rows: List<Pair<String, String>> =   // key → 显示名
+        listOf("me" to "我") + selectedIds.mapIndexed { idx, id ->
+            idx.toString() to (partnerById[id]?.let { "${it.emoji} ${it.nickname}" } ?: "参与者${idx + 1}")
+        }
+
+    Column {
+        SectionTitle("高潮次数")
+        Spacer(Modifier.height(6.dp))
+        if (selectedIds.isEmpty()) {
+            M3Text(
+                "未选择参与者 · 仍可记录「我」的次数",
+                fontSize = 12.sp, color = palette.textHint,
+            )
+        }
+        rows.forEach { (key, name) ->
+            val count = climaxes[key] ?: 0
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                M3Text(name, fontSize = 14.sp, color = palette.text, modifier = Modifier.weight(1f))
+                // −
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable(enabled = count > 0) { onBump(key, -1) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    M3Text("−", fontSize = 17.sp, color = if (count > 0) palette.text else palette.textHint)
+                }
+                M3Text(
+                    "$count",
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.text,
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                )
+                // ＋
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(palette.chipBg)
+                        .clickable { onBump(key, +1) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    M3Text("＋", fontSize = 15.sp, color = palette.text)
+                }
+            }
+        }
+    }
+}
+
 /** 标题 + 右侧 ➕ 自定义管理入口 */
 @Composable
 private fun SectionTitleWithAdd(text: String, onAdd: () -> Unit) {
+    val palette = LocalIntimaPalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -409,33 +511,18 @@ private fun SectionTitleWithAdd(text: String, onAdd: () -> Unit) {
             text,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = LocalIntimaPalette.current.textSub,
+            color = palette.textSub,
         )
         Box(
             modifier = Modifier
                 .size(26.dp)
                 .clip(CircleShape)
-                .background(LocalIntimaPalette.current.chipBg)
+                .background(palette.chipBg)
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center,
         ) {
-            M3Text("＋", fontSize = 15.sp, color = LocalIntimaPalette.current.text)
+            M3Text("＋", fontSize = 15.sp, color = palette.text)
         }
-    }
-}
-
-@Composable
-private fun SelectableChip(text: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MiuixTheme.colorScheme.primary else LocalIntimaPalette.current.chipBg
-    val fg = if (selected) Color.White else LocalIntimaPalette.current.text
-    Box(
-        modifier = Modifier
-            .clip(androidx.compose.foundation.shape.CircleShape)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        M3Text(text, color = fg, fontSize = 14.sp)
     }
 }
 
@@ -446,9 +533,6 @@ private fun ChipFlow(
     selected: Set<String>,
     onToggle: (String) -> Unit,
     emptyText: String,
-    manageHint: String? = null,
-    onManageTags: () -> Unit = {},
-    labelOf: (String) -> String = { it },
 ) {
     if (items.isEmpty() && emptyText.isNotEmpty()) {
         M3Text(emptyText, fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
@@ -460,38 +544,11 @@ private fun ChipFlow(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items.forEach { id ->
-            SelectableChip(
-                text = labelOf(id),
+            MiuixChip(
+                text = id,
                 selected = id in selected,
                 onClick = { onToggle(id) },
             )
         }
-        if (manageHint != null) {
-            SelectableChip(text = manageHint, selected = false, onClick = onManageTags)
-        }    }
-}
-
-/** 体位/玩具的内联小输入框（输入 + 回车确认） */
-@Composable
-private fun PositionToyInput(hint: String, onAdd: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    androidx.compose.material3.OutlinedTextField(
-        value = text,
-        onValueChange = { text = it },
-        placeholder = { M3Text(hint, fontSize = 13.sp, color = LocalIntimaPalette.current.textHint) },
-        modifier = Modifier.width(110.dp),
-        singleLine = true,
-        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
-        trailingIcon = {
-            if (text.isNotBlank()) {
-                M3Text(
-                    "添加", fontSize = 13.sp, color = Color(0xFF3482FF),
-                    modifier = Modifier
-                        .clip(androidx.compose.foundation.shape.CircleShape)
-                        .clickable { onAdd(text); text = "" }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                )
-            }
-        },
-    )
+    }
 }

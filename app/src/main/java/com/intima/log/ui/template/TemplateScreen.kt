@@ -30,7 +30,6 @@ import com.intima.log.data.db.SceneTemplate
 import com.intima.log.data.repo.PartnerRepository
 import com.intima.log.data.repo.TemplateRepository
 import com.intima.log.domain.usecase.ApplyTemplateUseCase
-import com.intima.log.ui.record.label
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,14 +55,13 @@ class TemplateViewModel @Inject constructor(
         viewModelScope.launch { partners = partnerRepository.listActive() }
     }
 
-    fun save(name: String, partnerIds: List<Long>, rating: Int, place: com.intima.log.data.db.Place) {
+    fun save(name: String, partnerIds: List<Long>, rating: Int) {
         viewModelScope.launch {
             repository.save(
                 SceneTemplate(
                     name = name.ifBlank { "模板" },
                     partnerIdsJson = ApplyTemplateUseCase.encodeIds(partnerIds),
-                                        rating = rating,
-                    place = place,
+                    rating = rating,
                 )
             )
         }

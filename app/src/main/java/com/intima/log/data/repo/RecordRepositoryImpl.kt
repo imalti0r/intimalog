@@ -3,11 +3,11 @@ package com.intima.log.data.repo
 import androidx.room.withTransaction
 import com.intima.log.data.db.IntimaDatabase
 import com.intima.log.data.db.PartnerDao
-import com.intima.log.data.db.Place
 import com.intima.log.data.db.RecordDao
 import com.intima.log.data.db.RecordPartnerCrossRef
 import com.intima.log.data.db.SexRecord
 import com.intima.log.data.db.SexRecordWithPartners
+import com.intima.log.domain.usecase.RecordSplitter
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,43 +38,71 @@ class RecordRepositoryImpl @Inject constructor(
     override suspend fun save(draft: RecordDraft): Long = db.withTransaction {
         val now = System.currentTimeMillis()
         val distinctIds = draft.partnerIds.distinct()
-        val record = SexRecord(
-            id = draft.recordId,
-            participantCount = distinctIds.size,
-            startTime = draft.startTime,
-            endTime = draft.endTime,
-                        climax = draft.climax,
-            rating = draft.rating,
-            moodTags = draft.moodTag,
-            place = draft.place,
-                        customProtections = draft.customProtections.joinToString(","),
-            customPlaces = draft.customPlaces.joinToString(","),
-            positions = draft.positions.joinToString(","),
-            toys = draft.toys.joinToString(","),
-            note = draft.note,
-            isBackfill = draft.isBackfill,
-            updatedAt = now,
+
+        // ---- 跨日拆分：[start, end) 按本地自然日 00:00 切成多行，同组共享 splitGroupId ----
+        // 进行中记录（endTime=null）不拆分，endTime 行存 null；结束时由 finishOngoing 补拆
+        val segments = RecordSplitter.split(
+            draft.startTime,
+            draft.endTime ?: draft.startTime,
+            groupId = draft.splitGroupId,
         )
-        val recordId = if (draft.recordId == 0L) {
-            recordDao.insert(record)
-        } else {
-            // 保留原 createdAt
+
+        // 编辑已有记录：若原来属于某拆分组而新区间不再跨日/组变化，先清掉旧组的其余段
+        if (draft.recordId != 0L) {
             val old = recordDao.byId(draft.recordId)
-            recordDao.update(record.copy(createdAt = old?.createdAt ?: now))
-            recordDao.deleteLinksFor(draft.recordId)
-            draft.recordId
+            val oldGroup = old?.splitGroupId
+            if (oldGroup != null && (segments.size <= 1 || segments.first().splitGroupId != oldGroup)) {
+                recordDao.deleteBySplitGroupId(oldGroup)
+            }
         }
-        distinctIds.forEachIndexed { index, partnerId ->
-            recordDao.insertLink(
-                RecordPartnerCrossRef(
-                    recordId = recordId,
-                    partnerId = partnerId,
-                    joinOrder = index,
-                    isPrimary = partnerId == draft.primaryPartnerId
-                )
+
+        val single = segments.size == 1
+        var firstId = 0L
+        segments.forEachIndexed { segIdx, seg ->
+            val row = SexRecord(
+                id = if (single) draft.recordId else 0L,
+                participantCount = distinctIds.size,
+                startTime = seg.startMillis,
+                endTime = draft.endTime?.let { seg.endMillis },
+                rating = draft.rating,
+                moodTags = draft.moodTag,
+                customProtections = draft.customProtections.joinToString(","),
+                customPlaces = draft.customPlaces.joinToString(","),
+                positions = draft.positions.joinToString(","),
+                toys = draft.toys.joinToString(","),
+                note = draft.note,
+                isBackfill = draft.isBackfill,
+                climaxesJson = draft.climaxes.filterValues { it != 0 }.let {
+                    if (it.isEmpty()) "" else kotlinx.serialization.json.Json.encodeToString(it)
+                },
+                splitGroupId = if (single) null else seg.splitGroupId,
+                splitIndex = seg.splitIndex,
+                createdAt = if (draft.recordId != 0L && segIdx == 0) {
+                    recordDao.byId(draft.recordId)?.createdAt ?: now
+                } else now,
+                updatedAt = now,
             )
+            val id: Long
+            if (single && draft.recordId != 0L) {
+                recordDao.update(row)
+                recordDao.deleteLinksFor(draft.recordId)
+                id = draft.recordId
+            } else {
+                id = recordDao.insert(row)
+            }
+            if (segIdx == 0) firstId = id
+            distinctIds.forEachIndexed { index, partnerId ->
+                recordDao.insertLink(
+                    RecordPartnerCrossRef(
+                        recordId = id,
+                        partnerId = partnerId,
+                        joinOrder = index,
+                        isPrimary = partnerId == draft.primaryPartnerId
+                    )
+                )
+            }
         }
-        recordId
+        firstId
     }
 
     override suspend fun startOngoing(partnerIds: List<Long>): Long = db.withTransaction {
@@ -94,12 +122,45 @@ class RecordRepositoryImpl @Inject constructor(
     override suspend fun finishOngoing(endTime: Long): Long? {
         val ongoing = recordDao.ongoing() ?: return null
         val fixedEnd = if (endTime <= ongoing.startTime) ongoing.startTime + 60_000L else endTime
-        recordDao.finishRecord(ongoing.id, fixedEnd, System.currentTimeMillis())
+        // 跨日计时：结束时按自然日拆分（原行改为第一段，多余段插入）
+        val segments = RecordSplitter.split(ongoing.startTime, fixedEnd)
+        if (segments.size <= 1) {
+            recordDao.finishRecord(ongoing.id, fixedEnd, System.currentTimeMillis())
+            return ongoing.id
+        }
+        db.withTransaction {
+            val first = segments.first()
+            recordDao.finishRecord(ongoing.id, first.endMillis, System.currentTimeMillis())
+            recordDao.updateSplitGroup(
+                id = ongoing.id,
+                splitGroupId = first.splitGroupId,
+                splitIndex = first.splitIndex,
+                updatedAt = System.currentTimeMillis(),
+            )
+            segments.drop(1).forEach { seg ->
+                recordDao.insert(
+                    SexRecord(
+                        participantCount = ongoing.participantCount,
+                        startTime = seg.startMillis,
+                        endTime = seg.endMillis,
+                        customProtections = ongoing.customProtections,
+                        customPlaces = ongoing.customPlaces,
+                        positions = ongoing.positions,
+                        toys = ongoing.toys,
+                        note = ongoing.note,
+                        splitGroupId = seg.splitGroupId,
+                        splitIndex = seg.splitIndex,
+                    )
+                )
+            }
+        }
         return ongoing.id
     }
 
     override suspend fun delete(id: Long) {
-        recordDao.delete(id)
+        // 拆分组联动删除：删任意一段 → 整组移除
+        val target = recordDao.byId(id) ?: return
+        target.splitGroupId?.let { recordDao.deleteBySplitGroupId(it) } ?: recordDao.delete(id)
     }
 
     override suspend fun deleteAll() {
@@ -115,6 +176,9 @@ class RecordRepositoryImpl @Inject constructor(
 
     override suspend fun recordsContaining(partnerId: Long): List<SexRecordWithPartners> =
         recordDao.recordsContaining(partnerId).mapNotNull { recordDao.byIdWithPartners(it) }
+
+    override suspend fun splitGroupSiblings(groupId: String): List<SexRecord> =
+        recordDao.bySplitGroupId(groupId).sortedBy { it.splitIndex }
 
     override suspend fun partnerStats() = recordDao.partnerStats()
     override suspend fun partnerPersonTimes() = recordDao.partnerPersonTimes()

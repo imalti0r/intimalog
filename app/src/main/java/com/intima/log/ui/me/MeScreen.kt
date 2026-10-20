@@ -66,7 +66,7 @@ fun MeScreen(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFFE8F0FE), CircleShape),
+                    .background(LocalIntimaPalette.current.chipBg, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 M3Text("😊", fontSize = 28.sp)
@@ -128,10 +128,10 @@ private fun MeRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFFF4F5F7), RoundedCornerShape(12.dp)),
+                .background(LocalIntimaPalette.current.chipBg, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = title, tint = Color(0xFF3482FF))
+            Icon(icon, contentDescription = title, tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary)
         }
         Column(modifier = Modifier.weight(1f)) {
             M3Text(title, fontSize = 15.sp, color = LocalIntimaPalette.current.text)

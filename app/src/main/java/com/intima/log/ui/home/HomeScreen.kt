@@ -83,8 +83,8 @@ class HomeViewModel @Inject constructor(
     private val getRecords: GetRecordsUseCase,
     private val saveRecord: SaveRecordWithPartnersUseCase,
     private val profileRepository: ProfileRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
-
     private val metrics = MutableStateFlow(HomeUiState())
 
     val uiState: StateFlow<HomeUiState> = kotlinx.coroutines.flow.combine(
@@ -126,7 +126,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun startOngoing() {
-        viewModelScope.launch { saveRecord.startOngoing() }
+        viewModelScope.launch {
+            saveRecord.startOngoing()
+            // 计时进行中启动常驻通知（B5 修复）
+            com.intima.log.service.TimingServiceStarter.start(appContext)
+        }
     }
 
     fun finishOngoing() {

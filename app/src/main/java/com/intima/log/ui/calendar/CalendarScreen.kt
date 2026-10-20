@@ -72,6 +72,14 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
+    /** 每次进入日历页刷新一次（tab 切回 / 从其他页返回），并同步当前月 */
+    fun refreshOnEnter() {
+        viewModelScope.launch {
+            month = YearMonth.now()
+            load()
+        }
+    }
+
     fun prevMonth() { month = month.minusMonths(1); load() }
     fun nextMonth() { month = month.plusMonths(1); load() }
 
@@ -94,6 +102,11 @@ fun CalendarScreen(
     onEditRecord: (Long) -> Unit,
     viewModel: CalendarViewModel = hiltViewModel(),
 ) {
+    // 每次进入日历页刷新一次（需求：进入即刷新）
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        viewModel.refreshOnEnter()
+        onDispose { }
+    }
     Column(modifier = Modifier.fillMaxSize().background(LocalIntimaPalette.current.bg)) {
         // 月份切换
         Row(
@@ -179,8 +192,8 @@ private fun MonthGrid(
                                         .clip(CircleShape)
                                         .background(
                                             when {
-                                                isSelected -> Color(0xFF3482FF)
-                                                isToday -> Color(0x153482FF)
+                                                isSelected -> top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
+                                                isToday -> top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary.copy(alpha = 0.08f)
                                                 else -> Color.Transparent
                                             }
                                         )
@@ -203,7 +216,7 @@ private fun MonthGrid(
                                         modifier = Modifier
                                             .padding(top = 2.dp)
                                             .size(5.dp)
-                                            .background(Color(0xFF3482FF), CircleShape),
+                                            .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary, CircleShape),
                                     )
                                 } else {
                                     Box(modifier = Modifier.padding(top = 2.dp).size(5.dp))

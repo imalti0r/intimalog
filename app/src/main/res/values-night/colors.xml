@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色窗口底色：与 Compose DarkPalette.bg 一致（跟随系统夜间时冷启动直接黑底，防白闪） -->
+    <color name="intima_window_bg">#000000</color>
+</resources>

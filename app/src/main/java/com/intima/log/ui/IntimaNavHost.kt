@@ -61,6 +61,7 @@ import com.intima.log.ui.settings.SettingsScreen
 import com.intima.log.ui.stats.StatsScreen
 import com.intima.log.ui.template.TemplateScreen
 import com.intima.log.ui.theme.LocalIntimaPalette
+import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
 
 /** 路由表 */
 object Routes {
@@ -236,34 +237,27 @@ fun IntimaNavHost() {
     }
 }
 
-/** Miuix 风格底部导航栏：白底、胶囊高亮 */
+/** Miuix 底部导航栏（Miuix NavigationBar 原生组件，颜色随主题） */
 @Composable
 private fun BottomNavBar(
     currentRoute: String?,
     onSelect: (MainTab) -> Unit,
 ) {
-    Row(
+    val palette = LocalIntimaPalette.current
+    top.yukonga.miuix.kmp.basic.NavigationBar(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LocalIntimaPalette.current.card)
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .navigationBarsPadding(),
+        color = palette.card,
     ) {
+        // content 为 RowScope.() -> Unit；NavigationBarItem 是其扩展（alias 导入后以 this 调用）
         MAIN_TABS.forEach { tab ->
-            val selected = currentRoute == tab.route
-            val tint = if (selected) Color(0xFF3482FF) else LocalIntimaPalette.current.textHint
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { onSelect(tab) }
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(tab.icon, contentDescription = tab.label, tint = tint)
-                M3Text(tab.label, fontSize = 11.sp, color = tint)
-            }
+            MiuixNavigationBarItem(
+                selected = currentRoute == tab.route,
+                onClick = { onSelect(tab) },
+                icon = tab.icon,
+                label = tab.label,
+            )
         }
     }
 }

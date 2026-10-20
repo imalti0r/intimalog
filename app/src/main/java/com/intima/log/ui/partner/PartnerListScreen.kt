@@ -146,7 +146,7 @@ fun PartnerListScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0x0D000000))
+                        .background(LocalIntimaPalette.current.chipBg)
                         .clickable(onClick = onOpenCombinations),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -156,7 +156,7 @@ fun PartnerListScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0x0D000000))
+                        .background(LocalIntimaPalette.current.chipBg)
                         .clickable { showAdd = true },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -247,55 +247,29 @@ fun PartnerListScreen(
     }
 
     deleteConfirm?.let { partner ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { deleteConfirm = null },
-            title = { M3Text("删除「${partner.nickname}」？") },
-            text = { M3Text("删除后不再出现在列表与记录选择器；历史记录保留，可在列表底部点击恢复。") },
-            confirmButton = {
-                M3Text(
-                    "删除", color = Color(0xFFE5484D), fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.delete(partner.id); deleteConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
-            dismissButton = {
-                M3Text(
-                    "取消", color = LocalIntimaPalette.current.textHint,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { deleteConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
+        val show = androidx.compose.runtime.remember { mutableStateOf(true) }
+        com.intima.log.ui.components.MiuixConfirmDialog(
+            show = show,
+            title = "删除「${partner.nickname}」？",
+            body = "删除后不再出现在列表与记录选择器；历史记录保留，可在列表底部点击恢复。",
+            confirmText = "删除",
+            danger = true,
+            onConfirm = { viewModel.delete(partner.id); deleteConfirm = null },
         )
+        androidx.compose.runtime.LaunchedEffect(show.value) { if (!show.value) deleteConfirm = null }
     }
 
     purgeConfirm?.let { partner ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { purgeConfirm = null },
-            title = { M3Text("彻底删除「${partner.nickname}」？") },
-            text = { M3Text("此操作不可恢复。历史记录中将显示为「已删除」，统计数字保持不变。") },
-            confirmButton = {
-                M3Text(
-                    "彻底删除", color = Color(0xFFE5484D), fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.purge(partner.id); purgeConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
-            dismissButton = {
-                M3Text(
-                    "取消", color = LocalIntimaPalette.current.textHint,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { purgeConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
+        val show = androidx.compose.runtime.remember { mutableStateOf(true) }
+        com.intima.log.ui.components.MiuixConfirmDialog(
+            show = show,
+            title = "彻底删除「${partner.nickname}」？",
+            body = "此操作不可恢复。历史记录中将显示为「已删除」，统计数字保持不变。",
+            confirmText = "彻底删除",
+            danger = true,
+            onConfirm = { viewModel.purge(partner.id); purgeConfirm = null },
         )
+        androidx.compose.runtime.LaunchedEffect(show.value) { if (!show.value) purgeConfirm = null }
     }
 }
 
@@ -407,32 +381,19 @@ private fun AddPartnerDialog(
 
     // 重名时先弹确认
     duplicateOf?.let { dup ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { duplicateOf = null },
-            title = { M3Text("已有同名伴侣") },
-            text = { M3Text("列表中已存在「${dup.nickname}」，仍要保存一个同名的新伴侣吗？") },
-            confirmButton = {
-                M3Text(
-                    "仍要保存", color = Color(0xFFE5484D), fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            duplicateOf = null
-                            onConfirm(name, emoji, gender, regular)
-                        }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
-            dismissButton = {
-                M3Text(
-                    "返回修改", color = LocalIntimaPalette.current.textHint,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { duplicateOf = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+        val show = androidx.compose.runtime.remember { mutableStateOf(true) }
+        com.intima.log.ui.components.MiuixConfirmDialog(
+            show = show,
+            title = "已有同名伴侣",
+            body = "列表中已存在「${dup.nickname}」，仍要保存一个同名的新伴侣吗？",
+            confirmText = "仍要保存",
+            danger = true,
+            onConfirm = {
+                duplicateOf = null
+                onConfirm(name, emoji, gender, regular)
             },
         )
+        androidx.compose.runtime.LaunchedEffect(show.value) { if (!show.value) duplicateOf = null }
     }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
@@ -444,27 +405,22 @@ private fun AddPartnerDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             M3Text(if (initial == null) "新增伴侣" else "修改信息", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            androidx.compose.material3.OutlinedTextField(
+            com.intima.log.ui.components.MiuixTextField(
                 value = name,
                 onValueChange = {
                     name = it
                     duplicateOf = null
                 },
-                label = { M3Text("昵称（必填）") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                supportingText = {
-                    // 实时重名提示（不阻塞输入）
-                    if (initial == null && name.isNotBlank()) {
-                        checkDuplicate(name)?.let { dup ->
-                            M3Text(
-                                "⚠ 已有同名伴侣「${dup.nickname}」，保存时会再次确认",
-                                fontSize = 12.sp, color = Color(0xFFE9A23B),
-                            )
-                        }
-                    }
-                },
+                label = "昵称（必填）",
             )
+            if (initial == null && name.isNotBlank()) {
+                checkDuplicate(name)?.let { dup ->
+                    M3Text(
+                        "⚠ 已有同名伴侣「${dup.nickname}」，保存时会再次确认",
+                        fontSize = 12.sp, color = Color(0xFFE9A23B),
+                    )
+                }
+            }
             // Emoji 选择：统一 40dp 格子、横向滑动翻页、末尾 ➕ 自定义
             val emojiCells = if (customEmojiMode) presetEmojis else presetEmojis + "+"
             Column {

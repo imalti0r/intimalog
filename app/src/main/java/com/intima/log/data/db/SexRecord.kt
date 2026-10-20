@@ -18,18 +18,17 @@ data class SexRecord(
     val participantCount: Int = 0,
     val startTime: Long,
     val endTime: Long? = null,            // null = 进行中
-    val protection: String = "NOT_RECORDED",   // 仅存兼容旧数据，新记录恒 "NOT_RECORDED"
-    val climax: Int = -1,                 // -1 不记录 / 0 否 / 1 是
     val rating: Int = 0,                  // 满意度 1~5，0=未评
     val moodTags: String = "",            // 单个情绪标签（单选）
-    val place: Place = Place.NOT_RECORDED,
-    val protections: String = "",         // 逗号分隔的多选保护措施（Protection.name）
-    val customProtections: String = "",   // 逗号分隔的自定义保护措施名
-    val customPlaces: String = "",        // 逗号分隔的自定义地点名
+    val customProtections: String = "",   // 逗号分隔的自定义保护措施名（仅用户自定义）
+    val customPlaces: String = "",        // 逗号分隔的自定义地点名（仅用户自定义）
     val positions: String = "",           // 逗号分隔的自定义体位
     val toys: String = "",                // 逗号分隔的自定义玩具
     val note: String = "",
     val isBackfill: Boolean = false,      // 手动补录
+    val climaxesJson: String = "",        // 每人高潮次数 JSON：{"0":2,"1":1,...}，key=参与者顺序号，"me"=用户
+    val splitGroupId: String? = null,     // 跨日拆分组 id（同组 = 原本一条记录拆分而成）
+    val splitIndex: Int = 0,              // 组内序号：0 = 第一天（start 为原记录起点）
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 ) {

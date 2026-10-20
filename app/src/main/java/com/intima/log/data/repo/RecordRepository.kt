@@ -12,16 +12,16 @@ data class RecordDraft(
     val primaryPartnerId: Long? = null,   // 主参与者（必须在 partnerIds 内）
     val startTime: Long,
     val endTime: Long? = null,
-    val customProtections: List<String> = emptyList(),  // 自定义保护措施名
-    val climax: Int = -1,
+    val customProtections: List<String> = emptyList(),  // 自定义保护措施名（仅用户自定义）
     val rating: Int = 0,
     val moodTag: String = "",             // 情绪（单选）
-    val place: com.intima.log.data.db.Place = com.intima.log.data.db.Place.NOT_RECORDED,
-    val customPlaces: List<String> = emptyList(),       // 自定义地点名
+    val customPlaces: List<String> = emptyList(),       // 自定义地点名（仅用户自定义）
     val positions: List<String> = emptyList(),  // 自定义体位
     val toys: List<String> = emptyList(),       // 自定义玩具
     val note: String = "",
     val isBackfill: Boolean = false,
+    val climaxes: Map<String, Int> = emptyMap(),  // 每人高潮次数（key=顺序号或 "me"）
+    val splitGroupId: String? = null,   // 编辑拆分组时保持组 id 稳定；新建跨日自动生成
 )
 
 interface RecordRepository {
@@ -38,7 +38,7 @@ interface RecordRepository {
     suspend fun byId(id: Long): SexRecordWithPartners?
     suspend fun ongoingRecord(): SexRecord?
 
-    /** 事务写入：记录 + 关联 + participantCount 原子维护 */
+    /** 事务写入：记录 + 关联 + participantCount 原子维护。跨日区间自动按自然日拆分 */
     suspend fun save(draft: RecordDraft): Long
 
     /** 开始计时（endTime=null） */
@@ -47,6 +47,7 @@ interface RecordRepository {
     /** 结束进行中的记录，返回结束的记录 id；无进行中记录返回 null */
     suspend fun finishOngoing(endTime: Long = System.currentTimeMillis()): Long?
 
+    /** 删除记录；若属于拆分组则联动删除同组其余段 */
     suspend fun delete(id: Long)
     suspend fun deleteAll()
     suspend fun count(): Int
@@ -55,6 +56,9 @@ interface RecordRepository {
     // 组合查询
     suspend fun recordsWithExactPartners(partnerIds: List<Long>): List<SexRecordWithPartners>
     suspend fun recordsContaining(partnerId: Long): List<SexRecordWithPartners>
+
+    /** 拆分组的全部段（按 splitIndex 升序） */
+    suspend fun splitGroupSiblings(groupId: String): List<com.intima.log.data.db.SexRecord>
     suspend fun partnerStats(): List<com.intima.log.data.db.PartnerWithStats>
     suspend fun partnerPersonTimes(): List<com.intima.log.data.db.PartnerPersonTimeRow>
         suspend fun multiPartnerBuckets(): List<com.intima.log.data.db.BucketCountRow>

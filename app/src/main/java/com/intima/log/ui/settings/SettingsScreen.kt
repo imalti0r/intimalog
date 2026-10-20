@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text as M3Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -123,6 +124,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         M3Text(
             "设置",
             fontSize = 28.sp, fontWeight = FontWeight.Bold,
+            color = LocalIntimaPalette.current.text,
             modifier = Modifier.clickable {
                 val now = System.currentTimeMillis()
                 if (now - lastTapAt > 3_000) titleTaps = 0
@@ -130,6 +132,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 if (++titleTaps >= 5) { titleTaps = 0; wipeConfirm = true }
             },
         )
+
+        // 功能④：日间/夜间/跟随系统 三态切换（DataStore 持久化，MainActivity 响应式生效）
+        ThemeModeSetting(themeMode) { viewModel.setThemeMode(it) }
 
         SettingSwitch("应用锁（PIN）", lock) { enabled ->
             if (enabled && !viewModel.profileRepository.hasPin()) {
@@ -176,40 +181,49 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     }
 }
 
-// 占位：见 PinSetupDialog 实现
+// PIN 设置弹窗（Miuix 风格）
 @Composable
 private fun PinSetupDialog(onDismiss: () -> Unit, onSet: (String) -> Unit) {
     var pin by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
+    val palette = LocalIntimaPalette.current
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(LocalIntimaPalette.current.card, RoundedCornerShape(24.dp))
+                .background(palette.card, RoundedCornerShape(22.dp))
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            M3Text("设置 PIN（4-6 位数字）", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            androidx.compose.material3.OutlinedTextField(
-                value = pin, onValueChange = { pin = it.filter(Char::isDigit).take(6) },
-                label = { M3Text("PIN") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            M3Text("设置 PIN（4-6 位数字）", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = palette.text)
+            com.intima.log.ui.components.MiuixTextField(
+                value = pin,
+                onValueChange = { pin = it.filter(Char::isDigit).take(6) },
+                label = "PIN",
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             )
-            androidx.compose.material3.OutlinedTextField(
-                value = confirm, onValueChange = { confirm = it.filter(Char::isDigit).take(6) },
-                label = { M3Text("确认 PIN") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            com.intima.log.ui.components.MiuixTextField(
+                value = confirm,
+                onValueChange = { confirm = it.filter(Char::isDigit).take(6) },
+                label = "确认 PIN",
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             )
             val valid = pin.length in 4..6 && pin == confirm
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                M3Text("取消", color = LocalIntimaPalette.current.textHint, modifier = Modifier.clickable { onDismiss() }.padding(8.dp))
+                M3Text("取消", color = palette.textHint, modifier = Modifier.clickable { onDismiss() }.padding(8.dp))
                 M3Text(
                     "确定",
-                    color = if (valid) Color(0xFF3482FF) else LocalIntimaPalette.current.textHint,
+                    color = if (valid) MiuixPrimary() else palette.textHint,
                     modifier = Modifier.clickable(enabled = valid) { onSet(pin) }.padding(8.dp),
                 )
             }
         }
     }
 }
+
+/** 主色取值（Miuix 主题 primary） */
+@Composable
+fun MiuixPrimary(): Color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
 
 @Composable
 private fun SettingSwitch(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
@@ -220,7 +234,50 @@ private fun SettingSwitch(title: String, checked: Boolean, onChange: (Boolean) -
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        M3Text(title, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        M3Text(title, fontSize = 15.sp, color = LocalIntimaPalette.current.text, modifier = Modifier.weight(1f))
         top.yukonga.miuix.kmp.basic.Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/** 功能④：三态主题切换（跟随系统 / 浅色 / 深色） */
+@Composable
+private fun ThemeModeSetting(current: ThemeMode, onChange: (ThemeMode) -> Unit) {
+    val palette = LocalIntimaPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.card, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        M3Text("外观", fontSize = 15.sp, color = palette.text, modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .background(palette.chipBg, RoundedCornerShape(999.dp))
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            listOf(
+                ThemeMode.SYSTEM to "跟随系统",
+                ThemeMode.LIGHT to "浅色",
+                ThemeMode.DARK to "深色",
+            ).forEach { (mode, label) ->
+                val selected = current == mode
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) palette.card else Color.Transparent)
+                        .clickable { onChange(mode) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    M3Text(
+                        label,
+                        fontSize = 12.sp,
+                        color = if (selected) palette.text else palette.textHint,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
+            }
+        }
     }
 }

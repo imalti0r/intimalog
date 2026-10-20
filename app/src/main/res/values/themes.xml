@@ -2,7 +2,7 @@
 <resources>
     <!-- Compose接管全部绘制，主题只提供窗口底色与启动过渡 -->
     <style name="Theme.IntimaLog" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowBackground">#F7F7F7</item>
+        <item name="android:windowBackground">@color/intima_window_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>

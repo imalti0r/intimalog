@@ -3,9 +3,6 @@ package com.intima.log.data.backup
 import android.content.Context
 import android.net.Uri
 import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Place
-import com.intima.log.data.db.RecordPartnerCrossRef
-import com.intima.log.data.db.SexRecord
 import com.intima.log.data.repo.PartnerRepository
 import com.intima.log.data.repo.RecordDraft
 import com.intima.log.data.repo.RecordRepository
@@ -44,16 +41,12 @@ data class BackupRecord(
     val id: Long,
     val startTime: Long,
     val endTime: Long? = null,
-    val protection: String = "NOT_RECORDED",
-    val climax: Int = -1,
     val rating: Int = 0,
     val moodTags: String = "",
-    val protections: String = "",   // 逗号分隔 Protection.name（v3 备份起）
-    val customProtections: String = "",  // 逗号分隔自定义保护措施（v5 备份起）
-    val customPlaces: String = "",       // 逗号分隔自定义地点（v5 备份起）
+    val customProtections: String = "",  // 逗号分隔自定义保护措施（仅用户自定义）
+    val customPlaces: String = "",       // 逗号分隔自定义地点（仅用户自定义）
     val positions: String = "",
     val toys: String = "",
-    val place: String = "NOT_RECORDED",
     val note: String = "",
     val isBackfill: Boolean = false,
     val createdAt: Long,
@@ -77,16 +70,12 @@ class BackupManager @Inject constructor(
                 id = r.record.id,
                 startTime = r.record.startTime,
                 endTime = r.record.endTime,
-                protection = "NOT_RECORDED",
-                climax = r.record.climax,
                 rating = r.record.rating,
                 moodTags = r.record.moodTags,
-                protections = r.record.protections,
                 customProtections = r.record.customProtections,
                 customPlaces = r.record.customPlaces,
                 positions = r.record.positions,
                 toys = r.record.toys,
-                place = r.record.place.name,
                 note = r.record.note,
                 isBackfill = r.record.isBackfill,
                 createdAt = r.record.createdAt,
@@ -136,10 +125,9 @@ class BackupManager @Inject constructor(
                 primaryPartnerId = br.partnerIds.firstOrNull()?.let { idMap[it] },
                 startTime = br.startTime,
                 endTime = br.endTime,
-customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
+                customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
                 positions = br.positions.split(",").filter { it.isNotBlank() },
                 toys = br.toys.split(",").filter { it.isNotBlank() },
-                place = runCatching { Place.valueOf(br.place) }.getOrDefault(Place.NOT_RECORDED),
                 customPlaces = br.customPlaces.split(",").filter { it.isNotBlank() },
                 note = br.note,
                 isBackfill = true,
@@ -153,7 +141,7 @@ customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
     /** CSV 明文导出（可选脱敏：P1/P2… 代替伴侣名） */
     suspend fun exportCsv(anonymize: Boolean): String {
         val sb = StringBuilder()
-        sb.appendLine("start_time,end_time,duration_seconds,protection,place,rating,mood_tags,note,partners")
+        sb.appendLine("start_time,end_time,duration_seconds,protections,places,rating,mood_tags,note,partners")
         val all = recordRepository.listAllWithPartners()
         val anonMap = mutableMapOf<Long, String>()
         all.forEach { item ->
@@ -167,8 +155,8 @@ customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
                     fmt(item.record.startTime),
                     item.record.endTime?.let(fmt) ?: "",
                     item.record.durationSeconds?.toString() ?: "",
-                    "NOT_RECORDED",
-                    item.record.place.name,
+                    item.record.customProtections,
+                    item.record.customPlaces,
                     item.record.rating.toString(),
                     item.record.moodTags,
                     item.record.note.replace(",", "，"),

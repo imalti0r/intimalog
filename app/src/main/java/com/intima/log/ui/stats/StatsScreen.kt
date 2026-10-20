@@ -1,6 +1,7 @@
 package com.intima.log.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,10 +79,14 @@ class StatsViewModel @Inject constructor(
         private set
     var heatmap by mutableStateOf<Map<LocalDate, Int>>(emptyMap())
         private set
-
+    var climaxStats by mutableStateOf<List<Pair<String, Int>>>(emptyList())
+        private set            // 每人高潮次数排行（含「我」）
+    var splitCounting by mutableStateOf(true)
+        private set            // 拆分计数：true=每段计数，false=原始一次
     init {
         viewModelScope.launch {
             basis = profileRepository.profile.first().statsBasis
+            splitCounting = profileRepository.splitCountingFlow().first()
             load()
         }
     }
@@ -89,6 +95,14 @@ class StatsViewModel @Inject constructor(
         basis = b
         viewModelScope.launch {
             profileRepository.setStatsBasis(b)
+            load()
+        }
+    }
+
+    /** 每次进入统计页刷新一次（tab 切回 / 从其他页返回） */
+    fun refreshOnEnter() {
+        viewModelScope.launch {
+            basis = profileRepository.profile.first().statsBasis
             load()
         }
     }
@@ -118,27 +132,15 @@ class StatsViewModel @Inject constructor(
                 if (durations.isEmpty()) 0 else durations.average().toLong() / 60
             }
 
-            // 保护措施环形（恒按场次）。数据源：旧枚举列 protections + 新自定义列 customProtections，
-            // 逐场拆分计数（多选一场计入多个类别）；两者都空才归入「未记录」
+            // 保护措施环形（恒按场次）。数据源仅用户自定义列 customProtections，
+            // 逐场拆分计数（多选一场计入多个类别）；为空归入「未记录」
             val byProtection = LinkedHashMap<String, Int>()
             fun bump(name: String) = byProtection.merge(name, 1, Int::plus)
-            fun legacyName(raw: String): String = when (raw.trim()) {
-                "NONE" -> "无措施"
-                "CONDOM" -> "安全套"
-                "PILL_SHORT" -> "短效避孕药"
-                "PILL_LONG" -> "长效避孕药"
-                "PILL_URGENT", "PILL" -> "紧急避孕药"
-                "OTHER" -> "其他"
-                else -> raw.trim()
-            }
 
             all.forEach { r ->
                 val customs = r.record.customProtections.split(",").filter { it.isNotBlank() }
-                    .map { legacyName(it) }
                 when {
                     customs.isNotEmpty() -> customs.forEach { bump(it) }
-                    // 防御：v6 迁移前的旧库残留枚举单值
-                    r.record.protection == "NONE" -> bump("无措施")
                     else -> bump("未记录")
                 }
             }
@@ -165,6 +167,28 @@ class StatsViewModel @Inject constructor(
                 .sortedByDescending { it.value }
                 .take(8)
                 .map { (id, n) -> (partnerMap[id]?.nickname ?: "已归档") to n }
+
+            // 高潮次数排行：「我」+ 每位参与者（按记录内参与者顺序号聚合）
+            val climaxTotals = linkedMapOf<String, Int>()
+            all.forEach { item ->
+                val map = com.intima.log.ui.record.RecordEditViewModel.parseClimaxes(item.record.climaxesJson)
+                if (map.isNotEmpty()) {
+                    map.forEach { (key, n) -> climaxTotals.merge(key, n, Int::plus) }
+                }
+            }
+            climaxStats = climaxTotals.entries
+                .filter { it.value > 0 }
+                .sortedByDescending { it.value }
+                .map { (key, n) ->
+                    val name = when {
+                        key == "me" -> "我"
+                        else -> key.toLongOrNull()?.let { idx ->
+                            // key 是记录内顺序号，对应不了具体人时退化为「参与者N」
+                            itemIndexName(idx, all, partnerMap)
+                        } ?: "参与者${key}"
+                    }
+                    name to n
+                }
 
             // 体位使用排行（按出现场次）
             positionStats = all.flatMap { it.record.positions.split(",") }
@@ -195,6 +219,26 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    /** 拆分计数开关（功能②统计口径）：开=每段单独计数；关=同组只计一场（原始一次） */
+    fun chooseSplitCounting(count: Boolean) {
+        splitCounting = count
+        viewModelScope.launch { profileRepository.setSplitCounting(count) }
+        load()
+    }
+
+    private fun itemIndexName(
+        idx: Long,
+        all: List<com.intima.log.data.db.SexRecordWithPartners>,
+        partnerMap: Map<Long, com.intima.log.data.db.Partner>,
+    ): String {
+        // 遍历记录找该顺序号对应 partnerId；多人组合按 joinOrder。简化：取第一条含该顺序号的记录
+        for (item in all) {
+            val ids = item.partners.map { it.id }
+            if (idx.toInt() < ids.size) return partnerMap[ids[idx.toInt()]]?.nickname ?: "已归档"
+        }
+        return "参与者${idx + 1}"
+    }
+
 
     /** 自定义保护措施条目按名称取色（稳定散列到预设色板） */
     private fun protectionColorByName(name: String): Color {
@@ -213,6 +257,11 @@ class StatsViewModel @Inject constructor(
 /** 统计页 */
 @Composable
 fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
+    // 每次进入统计页刷新一次（需求：进入即刷新）
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        viewModel.refreshOnEnter()
+        onDispose { }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -255,6 +304,13 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             if (viewModel.partnerDistribution.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.partnerDistribution, barColor = Color(0xFF7B5CFF))
         }
+        CardBlock("高潮次数排行（含「我」）") {
+            if (viewModel.climaxStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
+            else HBarChart(rows = viewModel.climaxStats, barColor = Color(0xFFE85A8A))
+        }
+        CardBlock("跨日拆分计数（按分段 / 原始一次）") {
+            SplitCountingSwitcher(counting = viewModel.splitCounting, onChange = viewModel::chooseSplitCounting)
+        }
         CardBlock("体位使用排行（按场次）") {
             if (viewModel.positionStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.positionStats, barColor = Color(0xFF03B585))
@@ -277,7 +333,38 @@ private fun CardBlock(title: String, content: @Composable () -> Unit) {
             .background(LocalIntimaPalette.current.card, RoundedCornerShape(16.dp))
             .padding(16.dp),
     ) {
-        M3Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF444444))
+        M3Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LocalIntimaPalette.current.text)
         Box(Modifier.padding(top = 12.dp)) { content() }
+    }
+}
+
+/** 拆分计数口径切换：按分段（每组多条各计 1）/ 原始一次（每组只计 1） */
+@Composable
+fun SplitCountingSwitcher(counting: Boolean, onChange: (Boolean) -> Unit) {
+    val palette = LocalIntimaPalette.current
+    Row(
+        modifier = Modifier
+            .background(palette.chipBg, RoundedCornerShape(999.dp))
+            .padding(4.dp),
+    ) {
+        listOf(
+            true to "按分段",
+            false to "原始一次",
+        ).forEach { (value, label) ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(if (counting == value) palette.card else Color.Transparent)
+                    .clickable { onChange(value) }
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+            ) {
+                M3Text(
+                    label,
+                    fontSize = 13.sp,
+                    fontWeight = if (counting == value) FontWeight.Bold else FontWeight.Normal,
+                    color = if (counting == value) palette.text else palette.textHint,
+                )
+            }
+        }
     }
 }

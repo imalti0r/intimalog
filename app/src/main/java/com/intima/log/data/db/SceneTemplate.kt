@@ -11,15 +11,13 @@ data class CycleLog(
     val endDate: Long? = null,
 )
 
-/** 场景模板：参与者组合 + 保护措施 + 满意度 + 地点 */
+/** 场景模板：参与者组合 + 满意度（地点/保护措施只走用户自定义标签，不预置） */
 @Entity(tableName = "scene_templates")
 data class SceneTemplate(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val partnerIdsJson: String,           // JSON 数组 [1,2,3]
-    val protection: String = "NOT_RECORDED",
     val rating: Int = 0,
-    val place: Place = Place.NOT_RECORDED,
     val sortOrder: Int = 0,
     val pinned: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),

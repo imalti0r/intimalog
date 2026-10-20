@@ -7,13 +7,11 @@ import androidx.room.PrimaryKey
 /** 性别 */
 enum class Gender { MALE, FEMALE, OTHER, UNDISCLOSED }
 
-/** 保护措施 */
-
-/** PILL 兼容：旧数据 PILL → 紧急避孕药显示 */
-
-
-/** 地点标签 */
-enum class Place { HOME, HOTEL, OTHER, NOT_RECORDED }
+/**
+ * 预置地点已移除：地点只从用户自定义（custom_tags kind=place）读取。
+ * 保留 NOT_RECORDED 作为 DB 列占位（新记录恒写此值）。
+ */
+enum class Place { NOT_RECORDED }
 
 /** 统计口径：SESSION=场次，PERSON_TIME=人次 */
 enum class StatsBasis { SESSION, PERSON_TIME }

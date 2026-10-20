@@ -125,7 +125,7 @@ private fun PrimaryButton(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFF3482FF))
+            .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary)
             .clickable(onClick = onClick)
             .padding(vertical = 15.dp),
         contentAlignment = Alignment.Center,

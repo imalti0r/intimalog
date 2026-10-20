@@ -191,29 +191,16 @@ fun TagsManageScreen(
         }
     }
     deleteConfirm?.let { tag ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { deleteConfirm = null },
-            title = { M3Text("删除「${tag.name}」？") },
-            text = { M3Text("历史记录中的引用保持不变，仅从待选列表移除。") },
-            confirmButton = {
-                M3Text(
-                    "删除", color = Color(0xFFE5484D), fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.delete(kind, tag.id); deleteConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
-            dismissButton = {
-                M3Text(
-                    "取消", color = palette.textHint,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { deleteConfirm = null }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            },
+        val show = androidx.compose.runtime.remember { mutableStateOf(true) }
+        com.intima.log.ui.components.MiuixConfirmDialog(
+            show = show,
+            title = "删除「${tag.name}」？",
+            body = "历史记录中的引用保持不变，仅从待选列表移除。",
+            confirmText = "删除",
+            danger = true,
+            onConfirm = { viewModel.delete(kind, tag.id); deleteConfirm = null },
         )
+        androidx.compose.runtime.LaunchedEffect(show.value) { if (!show.value) deleteConfirm = null }
     }
 }
 
@@ -230,17 +217,15 @@ private fun TagEditDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(palette.card, RoundedCornerShape(24.dp))
+                .background(palette.card, RoundedCornerShape(22.dp))
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             M3Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = palette.text)
-            androidx.compose.material3.OutlinedTextField(
+            com.intima.log.ui.components.MiuixTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { M3Text("名称") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "名称",
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 M3Text(
@@ -252,7 +237,7 @@ private fun TagEditDialog(
                 )
                 Spacer(Modifier.width(8.dp))
                 M3Text(
-                    "保存", color = Color(0xFF3482FF), fontWeight = FontWeight.SemiBold,
+                    "保存", color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .clickable(enabled = name.isNotBlank()) { onConfirm(name) }

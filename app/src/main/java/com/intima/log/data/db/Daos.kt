@@ -115,6 +115,18 @@ interface RecordDao {
     @Query("DELETE FROM sex_records")
     suspend fun deleteAll()
 
+    /** 拆分组：取同组全部段 */
+    @Query("SELECT * FROM sex_records WHERE splitGroupId = :groupId ORDER BY splitIndex ASC")
+    suspend fun bySplitGroupId(groupId: String): List<SexRecord>
+
+    /** 拆分组：整组删除 */
+    @Query("DELETE FROM sex_records WHERE splitGroupId = :groupId")
+    suspend fun deleteBySplitGroupId(groupId: String)
+
+    /** 给进行中记录补拆分标记（结束时跨日场景） */
+    @Query("UPDATE sex_records SET splitGroupId = :splitGroupId, splitIndex = :splitIndex, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateSplitGroup(id: Long, splitGroupId: String, splitIndex: Int, updatedAt: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLink(ref: RecordPartnerCrossRef): Long
 

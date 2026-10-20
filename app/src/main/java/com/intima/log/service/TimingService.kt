@@ -48,7 +48,7 @@ class TimingService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                startForeground(NOTIFICATION_ID, buildNotification(0))
+                startForegroundSafe(buildNotification(0))
                 ticker?.cancel()
                 ticker = scope.launch {
                     while (isActive) {
@@ -92,9 +92,20 @@ class TimingService : Service() {
     override fun onCreate() {
         super.onCreate()
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        // Android 13+：通知渠道必须在 startForeground 前创建（否则 ForegroundServiceDidNotStartInTimeException）
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "计时", NotificationManager.IMPORTANCE_LOW)
         )
+    }
+
+    /** startForeground 安全校验：Android 12+ 无 POST_NOTIFICATIONS 时降级 foregroundServiceBehavior */
+    private fun startForegroundSafe(notification: Notification) {
+        try {
+            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            // 权限被拒时静默继续（服务仍在运行，仅无通知图标）
+            android.util.Log.w("TimingService", "startForeground failed", e)
+        }
     }
 
     override fun onDestroy() {

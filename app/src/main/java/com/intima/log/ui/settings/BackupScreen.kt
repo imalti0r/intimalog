@@ -203,12 +203,10 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         M3Text("备份与导出", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        androidx.compose.material3.OutlinedTextField(
+        com.intima.log.ui.components.MiuixTextField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(6) },
-            label = { M3Text("导出/导入密码（4-6 位）") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            label = "导出/导入密码（4-6 位）",
         )
         ActionRow("导出加密 .intima", enabled = pin.length >= 4) { exportLauncher.launch("intima_backup.intima") }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -227,36 +225,30 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
 
         // ---- WebDAV 同步 ----
         M3Text("WebDAV 同步", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        androidx.compose.material3.OutlinedTextField(
+        com.intima.log.ui.components.MiuixTextField(
             value = davUrl,
             onValueChange = { davUrl = it },
-            label = { M3Text("服务器地址（https://dav.example.com/dav）") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            label = "服务器地址（https://dav.example.com/dav）",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.material3.OutlinedTextField(
+            com.intima.log.ui.components.MiuixTextField(
                 value = davUser,
                 onValueChange = { davUser = it },
-                label = { M3Text("账号") },
+                label = "账号",
                 modifier = Modifier.weight(1f),
-                singleLine = true,
             )
-            androidx.compose.material3.OutlinedTextField(
+            com.intima.log.ui.components.MiuixTextField(
                 value = davPass,
                 onValueChange = { davPass = it },
-                label = { M3Text("密码") },
+                label = "密码",
                 modifier = Modifier.weight(1f),
-                singleLine = true,
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             )
         }
-        androidx.compose.material3.OutlinedTextField(
+        com.intima.log.ui.components.MiuixTextField(
             value = davDir,
             onValueChange = { davDir = it },
-            label = { M3Text("远端目录（默认 intimalog）") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            label = "远端目录（默认 intimalog）",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -303,7 +295,7 @@ private fun ActionRow(text: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (enabled) Color.White else Color(0x0A000000), RoundedCornerShape(16.dp))
+            .background(if (enabled) LocalIntimaPalette.current.card else LocalIntimaPalette.current.chipBg, RoundedCornerShape(16.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(16.dp),
     ) {

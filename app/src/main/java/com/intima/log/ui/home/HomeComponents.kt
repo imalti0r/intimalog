@@ -51,7 +51,7 @@ fun NavIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: S
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(Color(0x0D000000))
+            .background(LocalIntimaPalette.current.chipBg)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -115,7 +115,7 @@ fun BigRecordButton(
         M3Text(
             "点击填写详情 →",
             fontSize = 13.sp,
-            color = Color(0xFF7B8CDE),
+            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary,
             modifier = Modifier
                 .padding(top = 12.dp)
                 .clickable(onClick = onQuickAdd),

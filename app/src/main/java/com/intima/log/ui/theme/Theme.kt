@@ -1,10 +1,15 @@
 package com.intima.log.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowInsetsControllerCompat
 import top.yukonga.miuix.kmp.theme.Colors
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
@@ -66,7 +71,24 @@ fun IntimaTheme(
             surfaceContainer = IntimaColors.LightCard,
         )
     }
-    CompositionLocalProvider(LocalIntimaPalette provides palette) {
+
+    // 系统栏图标随主题实时反色：浅色主题黑图标、深色主题白图标。
+    // WindowInsetsControllerCompat 覆盖状态栏 + 导航栏，themeMode 切换时立即重执行。
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val controller = WindowInsetsControllerCompat(window, view)
+            val lightIcons = !darkTheme
+            controller.isAppearanceLightStatusBars = lightIcons
+            controller.isAppearanceLightNavigationBars = lightIcons
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalIntimaPalette provides palette,
+        LocalDarkTheme provides darkTheme,
+    ) {
         MiuixTheme(colors = colors, content = content)
     }
 }

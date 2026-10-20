@@ -39,7 +39,7 @@ fun StatsBasisSwitcher(
 ) {
     Row(
         modifier = Modifier
-            .background(Color(0x0D000000), RoundedCornerShape(999.dp))
+            .background(LocalIntimaPalette.current.chipBg, RoundedCornerShape(999.dp))
             .padding(4.dp),
     ) {
         listOf(
@@ -50,7 +50,7 @@ fun StatsBasisSwitcher(
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
                     .background(
-                        if (basis == b) Color.White else Color.Transparent
+                        if (basis == b) LocalIntimaPalette.current.card else Color.Transparent
                     )
                     .clickable { onChange(b) }
                     .padding(horizontal = 20.dp, vertical = 6.dp),
@@ -59,7 +59,7 @@ fun StatsBasisSwitcher(
                     label,
                     fontSize = 13.sp,
                     fontWeight = if (basis == b) FontWeight.Bold else FontWeight.Normal,
-                    color = if (basis == b) Color(0xFF1A1A1A) else Color(0xFF888888),
+                    color = if (basis == b) LocalIntimaPalette.current.text else LocalIntimaPalette.current.textHint,
                 )
             }
         }
@@ -97,7 +97,7 @@ fun DonutChart(
             }
         }
         if (centerText.isNotEmpty()) {
-            M3Text(centerText, fontSize = 12.sp, color = Color(0xFF888888))
+            M3Text(centerText, fontSize = 12.sp, color = LocalIntimaPalette.current.textHint)
         }
         // 图例
         Row(
@@ -229,7 +229,7 @@ fun HBarChart(
                     modifier = Modifier
                         .weight(1f)
                         .height(18.dp)
-                        .background(Color(0x0D000000), RoundedCornerShape(9.dp)),
+                        .background(LocalIntimaPalette.current.chipBg, RoundedCornerShape(9.dp)),
                 ) {
                     Box(
                         modifier = Modifier
@@ -247,7 +247,12 @@ fun HBarChart(
 /** GitHub 风格热力图（近一年，恒按场次） */
 @Composable
 fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modifier) {
-    val levels = listOf(Color(0xFFEBEDF0), Color(0xFF9BE9A8), Color(0xFF40C463), Color(0xFF30A14E), Color(0xFF216E39))
+    val dark = LocalIntimaPalette.current.isDark
+    val levels = if (dark) {
+        listOf(Color(0xFF2C2C2E), Color(0xFF1F5B33), Color(0xFF2C8C4B), Color(0xFF34A853), Color(0xFF6CCB7A))
+    } else {
+        listOf(Color(0xFFEBEDF0), Color(0xFF9BE9A8), Color(0xFF40C463), Color(0xFF30A14E), Color(0xFF216E39))
+    }
     val today = java.time.LocalDate.now()
     val start = today.minusDays(363)
     Canvas(modifier = modifier.fillMaxWidth().height(96.dp)) {
