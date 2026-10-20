@@ -19,7 +19,7 @@
         android:label="@string/app_name_real"
         android:supportsRtl="true"
         android:theme="@style/Theme.IntimaLog"
-        android:enableOnBackInvokedCallback="true"
+        android:enableOnBackInvokedCallback="false"
         tools:targetApi="34">
 
         <!-- 主界面（无 LAUNCHER；由下方两个 alias 之一提供桌面入口） -->
