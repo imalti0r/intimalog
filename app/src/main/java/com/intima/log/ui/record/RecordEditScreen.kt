@@ -478,7 +478,7 @@ private fun ClimaxSection(
                     M3Text("−", fontSize = 17.sp, color = if (count > 0) palette.text else palette.textHint)
                 }
                 M3Text(
-                    "%02d".format(count.coerceAtMost(99)),
+                    "$count",                           // 显示实际数字（不补零）
                     fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.text,
                     modifier = Modifier.width(24.dp),   // 固定两字符宽，加减时控件不跳动
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
