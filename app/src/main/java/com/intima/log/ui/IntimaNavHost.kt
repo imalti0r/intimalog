@@ -102,6 +102,7 @@ private fun tabIndex(route: String?) = MAIN_TABS.indexOfFirst { it.route == rout
 
 private val EASE_OUT = CubicBezierEasing(0.25f, 0.8f, 0.25f, 1f)
 private val EASE_IN = CubicBezierEasing(0.4f, 0f, 1f, 1f)
+private val EASE_IN_OUT = CubicBezierEasing(0.45f, 0f, 0.55f, 1f)
 private const val TAB_DUR = 280
 private const val PAGE_DUR = 300
 
@@ -119,37 +120,28 @@ fun IntimaNavHost() {
             modifier = Modifier
                 .weight(1f)
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
-            // 统一过渡策略（initialState/targetState 都能拿到 route）：
-            // 1) 主 Tab → 主 Tab：整页按 Tab 序号方向滑动（跨多 Tab 一次滑到位）
-            // 2) 一级 → 二级：二级从右滑入，一级向左视差滑出 30%
-            // 3) 返回（反向）：二级向右滑出，一级从左视差滑回 30%
+            // 统一过渡策略：
+            // 1) 主 Tab ↔ 主 Tab：无动画，瞬时切换（状态经 saveState/restoreState 保留，不重建）
+            // 2) 一级 → 二级（push）：二级从右滑入覆盖，一级静止
+            // 3) 返回（pop）：二级向右滑出，一级原位露出
             enterTransition = {
                 val from = initialState.destination.route
                 val to = targetState.destination.route
-                when {
-                    tabIndex(from) >= 0 && tabIndex(to) >= 0 ->
-                        slideInHorizontally(tween(TAB_DUR, easing = EASE_OUT)) { full ->
-                            if (tabIndex(to) > tabIndex(from)) full else -full
-                        }
-                    else -> slideInHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { it }
-                }
+                if (tabIndex(from) >= 0 && tabIndex(to) >= 0) EnterTransition.None
+                else slideInHorizontally(tween(PAGE_DUR, easing = EASE_IN_OUT)) { it }
             },
             exitTransition = {
                 val from = initialState.destination.route
                 val to = targetState.destination.route
-                when {
-                    tabIndex(from) >= 0 && tabIndex(to) >= 0 ->
-                        slideOutHorizontally(tween(TAB_DUR, easing = EASE_OUT)) { full ->
-                            if (tabIndex(to) > tabIndex(from)) -full else full
-                        }
-                    else -> slideOutHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { -it / 3 } // 一级向左视差
-                }
+                if (tabIndex(from) >= 0 && tabIndex(to) >= 0) ExitTransition.None
+                else ExitTransition.None   // 一级页保持不动，被二级覆盖
             },
-            popEnterTransition = {
-                slideInHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { -it / 3 } // 一级从左视差滑回
-            },
+            popEnterTransition = { EnterTransition.None }, // 返回时一级页原位露出
             popExitTransition = {
-                slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN)) { it }      // 二级向右滑出
+                // 一级→一级 pop（理论不发生）也无动画；二级 pop 向右滑出
+                val from = initialState.destination.route
+                if (tabIndex(from) >= 0) ExitTransition.None
+                else slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN_OUT)) { it }
             },
         ) {
             composable(Routes.HOME) {
