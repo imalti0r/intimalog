@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.abs
 import javax.inject.Inject
 import com.intima.log.ui.theme.LocalIntimaPalette
 
@@ -118,10 +119,24 @@ class StatsViewModel @Inject constructor(
                 if (durations.isEmpty()) 0 else durations.average().toLong() / 60
             }
 
-            // 保护措施环形（恒按场次）
-            val byProtection = all.groupBy { it.record.protection }
-                .map { (p, list) -> PieSlice(protectionDisplayName(p), list.size, protectionColor(p)) }
-            protectionSlices = byProtection
+            // 保护措施环形（恒按场次）。数据源：旧枚举列 protections + 新自定义列 customProtections，
+            // 逐场拆分计数（多选一场计入多个类别）；两者都空才归入「未记录」
+            val byProtection = LinkedHashMap<String, Int>()
+            fun bump(name: String) = byProtection.merge(name, 1, Int::plus)
+            all.forEach { r ->
+                val enums = r.record.protections.split(",").filter { it.isNotBlank() }
+                    .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }
+                val customs = r.record.customProtections.split(",").filter { it.isNotBlank() }
+                if (enums.isEmpty() && customs.isEmpty()) {
+                    bump(protectionDisplayName(r.record.protection))
+                } else {
+                    enums.forEach { bump(protectionDisplayName(it)) }
+                    customs.forEach { bump(it) }
+                }
+            }
+            protectionSlices = byProtection.map { (name, n) ->
+                PieSlice(name, n, protectionColorByName(name))
+            }
 
             // 多人占比环形（恒按场次）
             val single = all.count { it.record.participantCount <= 1 }
@@ -188,6 +203,19 @@ class StatsViewModel @Inject constructor(
         Protection.PILL_URGENT -> "紧急避孕药"
         Protection.OTHER -> "其他"
         Protection.NOT_RECORDED -> "未记录"
+    }
+
+    /** 自定义保护措施条目按名称取色（稳定散列到预设色板） */
+    private fun protectionColorByName(name: String): Color {
+        if (name == "未记录") return Color(0xFF8E8E93)
+        if (name == "无措施") return Color(0xFFE94634)
+        if (name == "安全套") return Color(0xFF03B585)
+        val palette = listOf(
+            Color(0xFF3482FF), Color(0xFF7B5CFF), Color(0xFFFF9500),
+            Color(0xFF03B585), Color(0xFFE94634), Color(0xFF30B8C9),
+            Color(0xFFE85A8A), Color(0xFF8E8E93),
+        )
+        return palette[abs(name.hashCode()) % palette.size]
     }
 }
 
