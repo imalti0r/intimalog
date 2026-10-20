@@ -63,6 +63,12 @@ class TagsViewModel @Inject constructor(
     private val _toys = MutableStateFlow<List<CustomTag>>(emptyList())
     val toys = _toys.asStateFlow()
 
+    private val _customProtections = MutableStateFlow<List<CustomTag>>(emptyList())
+    val customProtections = _customProtections.asStateFlow()
+
+    private val _customPlaces = MutableStateFlow<List<CustomTag>>(emptyList())
+    val customPlaces = _customPlaces.asStateFlow()
+
     init {
         viewModelScope.launch {
             db.tagDao().observeKind("position").collect { list ->
@@ -72,6 +78,16 @@ class TagsViewModel @Inject constructor(
         viewModelScope.launch {
             db.tagDao().observeKind("toy").collect { list ->
                 _toys.value = list.map { CustomTag(it.id, it.name) }
+            }
+        }
+        viewModelScope.launch {
+            db.tagDao().observeKind("protection").collect { list ->
+                _customProtections.value = list.map { CustomTag(it.id, it.name) }
+            }
+        }
+        viewModelScope.launch {
+            db.tagDao().observeKind("place").collect { list ->
+                _customPlaces.value = list.map { CustomTag(it.id, it.name) }
             }
         }
     }
@@ -99,7 +115,12 @@ fun TagsManageScreen(
     onBack: () -> Unit,
     viewModel: TagsViewModel = hiltViewModel(),
 ) {
-    val list by (if (kind == "position") viewModel.positions else viewModel.toys).collectAsState()
+    val list by when (kind) {
+        "position" -> viewModel.positions
+        "protection" -> viewModel.customProtections
+        "place" -> viewModel.customPlaces
+        else -> viewModel.toys
+    }.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<CustomTag?>(null) }
     var deleteConfirm by remember { mutableStateOf<CustomTag?>(null) }
