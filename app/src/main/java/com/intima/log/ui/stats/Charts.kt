@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text as M3Text
@@ -145,7 +146,14 @@ fun HBarChart(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { (label, v) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                M3Text(label, fontSize = 12.sp, color = LocalIntimaPalette.current.textSub, modifier = Modifier.padding(end = 8.dp))
+                // 固定最小标签宽度：所有条形左端对齐同一列
+                M3Text(
+                    label, fontSize = 12.sp, maxLines = 1,
+                    color = LocalIntimaPalette.current.textSub,
+                    modifier = Modifier
+                        .widthIn(min = 88.dp)
+                        .padding(end = 8.dp),
+                )
                 Box(
                     modifier = Modifier
                         .weight(1f)
