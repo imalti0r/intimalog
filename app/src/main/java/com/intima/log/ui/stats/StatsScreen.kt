@@ -315,14 +315,17 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             if (viewModel.toyStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.toyStats, barColor = Color(0xFFFF9500))
         }
-        CardBlock("热力图（近一年 · 按场次）") {
+        CardBlock(
+            "热力图（近一年 · 按场次）",
+            subtitle = "统计范围 ${java.time.LocalDate.now().minusDays(363)} ~ ${java.time.LocalDate.now()}",
+        ) {
             Heatmap(dayCounts = viewModel.heatmap)
         }
     }
 }
 
 @Composable
-private fun CardBlock(title: String, content: @Composable () -> Unit) {
+private fun CardBlock(title: String, subtitle: String? = null, content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -330,6 +333,14 @@ private fun CardBlock(title: String, content: @Composable () -> Unit) {
             .padding(16.dp),
     ) {
         M3Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LocalIntimaPalette.current.text)
+        if (subtitle != null) {
+            M3Text(
+                subtitle,
+                fontSize = 11.sp,
+                color = LocalIntimaPalette.current.textHint,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         Box(Modifier.padding(top = 12.dp)) { content() }
     }
 }
