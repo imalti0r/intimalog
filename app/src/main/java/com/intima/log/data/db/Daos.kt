@@ -127,6 +127,10 @@ interface RecordDao {
     @Query("UPDATE sex_records SET splitGroupId = :splitGroupId, splitIndex = :splitIndex, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateSplitGroup(id: Long, splitGroupId: String, splitIndex: Int, updatedAt: Long)
 
+    /** 跨日拆分：第一天段清空高潮计数（计数挂到次日段） */
+    @Query("UPDATE sex_records SET climaxesJson = '', updatedAt = :updatedAt WHERE id = :id")
+    suspend fun clearClimaxes(id: Long, updatedAt: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLink(ref: RecordPartnerCrossRef): Long
 

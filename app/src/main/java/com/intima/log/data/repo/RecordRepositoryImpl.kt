@@ -72,9 +72,11 @@ class RecordRepositoryImpl @Inject constructor(
                 toys = draft.toys.joinToString(","),
                 note = draft.note,
                 isBackfill = draft.isBackfill,
-                climaxesJson = draft.climaxes.filterValues { it != 0 }.let {
-                    if (it.isEmpty()) "" else kotlinx.serialization.json.Json.encodeToString(it)
-                },
+                // 高潮次数语义：跨日拆分时第一天段(splitIndex=0)记 0（空），完整计数挂在后续段上
+                climaxesJson = (if (!single && seg.splitIndex == 0) emptyMap() else draft.climaxes)
+                    .filterValues { it != 0 }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { kotlinx.serialization.json.Json.encodeToString(it) } ?: "",
                 splitGroupId = if (single) null else seg.splitGroupId,
                 splitIndex = seg.splitIndex,
                 createdAt = if (draft.recordId != 0L && segIdx == 0) {
@@ -137,6 +139,10 @@ class RecordRepositoryImpl @Inject constructor(
                 splitIndex = first.splitIndex,
                 updatedAt = System.currentTimeMillis(),
             )
+            // 高潮次数语义：跨日拆分时第一天段清空计数，完整计数挂到后续段（次日段）
+            if (ongoing.climaxesJson.isNotBlank()) {
+                recordDao.clearClimaxes(ongoing.id, System.currentTimeMillis())
+            }
             segments.drop(1).forEach { seg ->
                 recordDao.insert(
                     SexRecord(
@@ -148,6 +154,7 @@ class RecordRepositoryImpl @Inject constructor(
                         positions = ongoing.positions,
                         toys = ongoing.toys,
                         note = ongoing.note,
+                        climaxesJson = ongoing.climaxesJson,
                         splitGroupId = seg.splitGroupId,
                         splitIndex = seg.splitIndex,
                     )

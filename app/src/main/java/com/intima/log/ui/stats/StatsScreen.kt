@@ -81,12 +81,9 @@ class StatsViewModel @Inject constructor(
         private set
     var climaxStats by mutableStateOf<List<Pair<String, Int>>>(emptyList())
         private set            // 每人高潮次数排行（含「我」）
-    var splitCounting by mutableStateOf(true)
-        private set            // 拆分计数：true=每段计数，false=原始一次
     init {
         viewModelScope.launch {
             basis = profileRepository.profile.first().statsBasis
-            splitCounting = profileRepository.splitCountingFlow().first()
             load()
         }
     }
@@ -168,10 +165,19 @@ class StatsViewModel @Inject constructor(
                 .take(8)
                 .map { (id, n) -> (partnerMap[id]?.nickname ?: "已归档") to n }
 
-            // 高潮次数排行：「我」+ 每位参与者（按记录内参与者顺序号聚合）
+            // 高潮次数排行：「我」+ 每位参与者（按记录内参与者顺序号聚合）。
+            // 跨日拆分组的每条分段都带同一份 climaxesJson，必须按 splitGroupId 去重只计一次，
+            // 否则同一组在每天分段上重复累加（统计显示在第二天分段上被重复计算）
             val climaxTotals = linkedMapOf<String, Int>()
+            val seenGroups = mutableSetOf<String>()
             all.forEach { item ->
-                val map = com.intima.log.ui.record.RecordEditViewModel.parseClimaxes(item.record.climaxesJson)
+                val rec = item.record
+                // 拆分组：只统计非首段（首段=第一天，语义上计 0，完整计数挂次日段）
+                if (rec.splitGroupId != null) {
+                    if (rec.splitIndex == 0) return@forEach
+                    if (!seenGroups.add(rec.splitGroupId!!)) return@forEach   // 同组只计一段
+                }
+                val map = com.intima.log.ui.record.RecordEditViewModel.parseClimaxes(rec.climaxesJson)
                 if (map.isNotEmpty()) {
                     map.forEach { (key, n) -> climaxTotals.merge(key, n, Int::plus) }
                 }
@@ -217,13 +223,6 @@ class StatsViewModel @Inject constructor(
                 Instant.ofEpochMilli(it.record.startTime).atZone(zone).toLocalDate()
             }.mapValues { it.value.size }
         }
-    }
-
-    /** 拆分计数开关（功能②统计口径）：开=每段单独计数；关=同组只计一场（原始一次） */
-    fun chooseSplitCounting(count: Boolean) {
-        splitCounting = count
-        viewModelScope.launch { profileRepository.setSplitCounting(count) }
-        load()
     }
 
     private fun itemIndexName(
@@ -308,9 +307,6 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             if (viewModel.climaxStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.climaxStats, barColor = Color(0xFFE85A8A))
         }
-        CardBlock("跨日拆分计数（按分段 / 原始一次）") {
-            SplitCountingSwitcher(counting = viewModel.splitCounting, onChange = viewModel::chooseSplitCounting)
-        }
         CardBlock("体位使用排行（按场次）") {
             if (viewModel.positionStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.positionStats, barColor = Color(0xFF03B585))
@@ -338,33 +334,4 @@ private fun CardBlock(title: String, content: @Composable () -> Unit) {
     }
 }
 
-/** 拆分计数口径切换：按分段（每组多条各计 1）/ 原始一次（每组只计 1） */
-@Composable
-fun SplitCountingSwitcher(counting: Boolean, onChange: (Boolean) -> Unit) {
-    val palette = LocalIntimaPalette.current
-    Row(
-        modifier = Modifier
-            .background(palette.chipBg, RoundedCornerShape(999.dp))
-            .padding(4.dp),
-    ) {
-        listOf(
-            true to "按分段",
-            false to "原始一次",
-        ).forEach { (value, label) ->
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(if (counting == value) palette.card else Color.Transparent)
-                    .clickable { onChange(value) }
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-            ) {
-                M3Text(
-                    label,
-                    fontSize = 13.sp,
-                    fontWeight = if (counting == value) FontWeight.Bold else FontWeight.Normal,
-                    color = if (counting == value) palette.text else palette.textHint,
-                )
-            }
-        }
-    }
-}
+

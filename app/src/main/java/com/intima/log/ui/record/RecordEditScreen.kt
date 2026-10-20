@@ -73,6 +73,20 @@ fun RecordEditScreen(
     var deleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
+    // 用户改动时间后自动清除冲突提示
+    LaunchedEffect(state.startTime, state.endTime) { viewModel.dismissConflict() }
+
+    // 保存被拒：时间冲突弹窗（禁止添加，提示修改）
+    val conflictShow = remember { mutableStateOf(false) }
+    LaunchedEffect(state.conflictMessage) { conflictShow.value = state.conflictMessage != null }
+    MiuixConfirmDialog(
+        show = conflictShow,
+        title = "时间冲突",
+        body = state.conflictMessage ?: "",
+        confirmText = "好的",
+        dismissText = "知道了",
+        onConfirm = { viewModel.dismissConflict() },
+    )
 
     Column(
         modifier = Modifier
@@ -387,14 +401,14 @@ fun RecordEditScreen(
                     MiuixTextField(
                         value = customText,
                         onValueChange = { customText = it.filter { c -> c.isDigit() }.take(4) },
-                        label = "自定义分钟",
+                        label = "自定义分钟（≤1440）",
                         modifier = Modifier.weight(1f),
                     )
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(MiuixTheme.colorScheme.primary)
-                            .clickable(enabled = customText.toIntOrNull() in 1..1440) {
+                            .clickable(enabled = customText.toIntOrNull() in 1..RecordEditViewModel.MAX_DURATION_MINUTES) {
                                 viewModel.setDurationMinutes(customText.toInt())
                                 showDurationPicker = false
                             }

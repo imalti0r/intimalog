@@ -42,6 +42,7 @@ data class RecordEditState(
     val knownCustomPlaces: List<String> = emptyList(),      // 自定义地点标签
     val note: String = "",
     val climaxes: Map<String, Int> = emptyMap(),   // 每人高潮次数：key=参与者顺序号（selectedIds 顺序）、"me"=用户
+    val conflictMessage: String? = null,           // 时间冲突提示（非空=禁止保存）
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long? = null,
     val saved: Boolean = false,
@@ -227,10 +228,10 @@ class RecordEditViewModel @Inject constructor(
         state = state.copy(startTime = newStart, endTime = newEnd)
     }
 
-    /** 持续分钟数（基于开始时间推算 endTime） */
+    /** 持续分钟数（基于开始时间推算 endTime）；上限 24 小时 */
     fun setDurationMinutes(min: Int) {
         if (state.ongoing) return
-        state = state.copy(endTime = state.startTime + min * 60_000L)
+        state = state.copy(endTime = state.startTime + min.coerceIn(1, MAX_DURATION_MINUTES) * 60_000L)
     }
 
     val durationMinutes: Int
@@ -246,16 +247,54 @@ class RecordEditViewModel @Inject constructor(
         }
     }
 
+    /** 清除冲突提示（用户改动时间后调用） */
+    fun dismissConflict() {
+        state = state.copy(conflictMessage = null)
+    }
+
     fun save() {
         viewModelScope.launch {
             val ids = state.selectedIds.toList()
+            val startTime = state.startTime
+            val endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis()
+
+            // 冲突检测：新区间 [start, end) 与任一已有记录（排除自身及其拆分组）重叠 → 禁止保存
+            if (endTime != null && !state.ongoing) {
+                val others = recordRepository.listAllWithPartners()
+                    .filter { item ->
+                        val r = item.record
+                        if (r.id == state.recordId) return@filter false
+                        if (state.splitGroupId != null && r.splitGroupId == state.splitGroupId) return@filter false
+                        if (state.isSplitGroup && r.splitGroupId == state.splitGroupId) return@filter false
+                        true
+                    }
+                    .map { it.record }
+                val clash = others.firstOrNull { r ->
+                    val rs = r.startTime
+                    val re = r.endTime ?: Long.MAX_VALUE
+                    startTime < re && rs < endTime
+                }
+                if (clash != null) {
+                    val fmt = DateTimeFormatter.ofPattern("MM-dd HH:mm")
+                    val zone = ZoneId.systemDefault()
+                    state = state.copy(
+                        conflictMessage = "与已有记录时间冲突（" +
+                            Instant.ofEpochMilli(clash.startTime).atZone(zone).format(fmt) +
+                            " ~ " +
+                            (clash.endTime?.let { Instant.ofEpochMilli(it).atZone(zone).format(fmt) } ?: "进行中") +
+                            "），请修改时间后再保存"
+                    )
+                    return@launch
+                }
+            }
+
             saveUseCase(
                 RecordDraft(
                     recordId = if (state.ongoing) state.recordId else if (recordId != 0L) recordId else 0,
                     partnerIds = ids,
                     primaryPartnerId = ids.firstOrNull(),
-                    startTime = state.startTime,
-                    endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis(),
+                    startTime = startTime,
+                    endTime = endTime,
                     customProtections = state.customProtections.toList(),
                     rating = state.rating,
                     moodTag = state.moodTag,
@@ -279,6 +318,7 @@ class RecordEditViewModel @Inject constructor(
     }
 
     companion object {
+        const val MAX_DURATION_MINUTES = 24 * 60
         const val KEY_START_DATE = "edit_start_date"
         const val KEY_START_HOUR = "edit_start_hour"
         const val KEY_START_MINUTE = "edit_start_minute"

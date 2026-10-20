@@ -60,7 +60,6 @@ class ProfileRepository @Inject constructor(
         val cycleModuleEnabled = booleanPreferencesKey("cycle_module_enabled")
         val weeklyReminder = booleanPreferencesKey("weekly_reminder")
         val themeMode = stringPreferencesKey("theme_mode")          // SYSTEM / LIGHT / DARK
-        val splitCounting = booleanPreferencesKey("split_counting") // 统计口径：拆分段计数
         val webdavUrl = stringPreferencesKey("webdav_url")
         val webdavUser = stringPreferencesKey("webdav_user")
         val webdavPassEnc = stringPreferencesKey("webdav_pass_enc") // Keystore AES 加密后 base64
@@ -106,14 +105,6 @@ class ProfileRepository @Inject constructor(
     }
 
     suspend fun setThemeMode(mode: ThemeMode) = context.profileDataStore.edit { it[Keys.themeMode] = mode.name }
-
-    // ---- 拆分计数口径 ----
-
-    fun splitCountingFlow(): Flow<Boolean> = context.profileDataStore.data.map { p ->
-        p[Keys.splitCounting] ?: true
-    }
-
-    suspend fun setSplitCounting(count: Boolean) = context.profileDataStore.edit { it[Keys.splitCounting] = count }
 
     // ---- WebDAV 同步配置 ----
 

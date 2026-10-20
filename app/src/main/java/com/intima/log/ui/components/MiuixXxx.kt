@@ -89,6 +89,8 @@ fun MiuixTextField(
         modifier = modifier.fillMaxWidth(),
         label = label,
         singleLine = singleLine,
+        // 输入文字显式随主题（Miuix TextField 默认 textStyle 不取 LocalContentColor，深色下会是黑字）
+        textStyle = androidx.compose.ui.text.TextStyle(color = LocalIntimaPalette.current.text),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
     )
