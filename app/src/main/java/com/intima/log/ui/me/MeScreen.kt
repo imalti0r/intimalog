@@ -22,6 +22,8 @@ import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.HealthAndSafety
+import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.Toys
 import androidx.compose.material3.Icon
@@ -89,6 +91,8 @@ fun MeScreen(
             MeRow(Icons.Rounded.People, "伴侣管理", "伴侣档案与组合视图") { onNavigate("partners") }
             MeRow(Icons.Rounded.SelfImprovement, "体位管理", "自定义体位标签") { onNavigate("positions") }
             MeRow(Icons.Rounded.Toys, "玩具管理", "自定义玩具标签") { onNavigate("toys") }
+            MeRow(Icons.Rounded.HealthAndSafety, "保护措施管理", "自定义保护措施标签") { onNavigate("protections") }
+            MeRow(Icons.Rounded.Place, "地点管理", "自定义地点标签") { onNavigate("places") }
             MeRow(Icons.Rounded.Bookmark, "场景模板", "常用组合一键套用") { onNavigate("templates") }
             MeRow(Icons.Rounded.BarChart, "统计", "趋势、占比与排行") { onNavigate("stats") }
             MeRow(Icons.Rounded.Bookmark, "备份与同步", "导出加密备份 · WebDAV") { onNavigate("backup") }
