@@ -340,34 +340,31 @@ private fun PartnerCard(
                     .padding(6.dp),
             ) {
                 M3Text("⋯", fontSize = 18.sp, color = palette.textHint)
-            }
-        }
-        if (menuOpen) {
-            // DropdownMenu：悬浮弹出，不占布局空间（不会把下面的卡片挤下去）
-            androidx.compose.material3.DropdownMenu(
-                expanded = true,
-                onDismissRequest = onMenuToggle,
-                modifier = Modifier.align(Alignment.TopEnd),
-            ) {
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { M3Text("修改信息") },
-                    onClick = { onMenuToggle(); onEdit() },
-                )
-                if (partner.hidden) {
+                // 菜单锚定在 ⋯ 按钮上，悬浮弹出（不挤压其它卡片）
+                androidx.compose.material3.DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = onMenuToggle,
+                ) {
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { M3Text("取消隐藏") },
-                        onClick = { onMenuToggle(); onUnhide() },
+                        text = { M3Text("修改信息") },
+                        onClick = { onMenuToggle(); onEdit() },
                     )
-                } else {
+                    if (partner.hidden) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { M3Text("取消隐藏") },
+                            onClick = { onMenuToggle(); onUnhide() },
+                        )
+                    } else {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { M3Text("隐藏") },
+                            onClick = { onMenuToggle(); onHide() },
+                        )
+                    }
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { M3Text("隐藏") },
-                        onClick = { onMenuToggle(); onHide() },
+                        text = { M3Text("删除", color = Color(0xFFE5484D)) },
+                        onClick = { onMenuToggle(); onDelete() },
                     )
                 }
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { M3Text("删除", color = Color(0xFFE5484D)) },
-                    onClick = { onMenuToggle(); onDelete() },
-                )
             }
         }
     }
