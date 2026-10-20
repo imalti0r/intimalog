@@ -242,6 +242,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             LineChart(
                 values = viewModel.avgDurationTrend.map { it.toInt() },
                 lineColor = Color(0xFF03B585),
+                unit = "分钟",
             )
         }
         CardBlock("保护措施比例（按场次）") {

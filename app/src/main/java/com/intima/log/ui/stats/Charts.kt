@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -116,23 +119,90 @@ fun DonutChart(
 
 /** 简易折线图（近 N 天趋势） */
 @Composable
-fun LineChart(values: List<Int>, modifier: Modifier = Modifier, lineColor: Color = Color(0xFF3482FF)) {
-    val maxV = (values.maxOrNull() ?: 1).coerceAtLeast(1)
-    Canvas(modifier = modifier.fillMaxWidth().height(120.dp)) {
-        if (values.size < 2) return@Canvas
-        val stepX = size.width / (values.size - 1)
-        var path = androidx.compose.ui.graphics.Path()
-        values.forEachIndexed { i, v ->
-            val x = i * stepX
-            val y = size.height - (v.toFloat() / maxV) * size.height * 0.9f - 8f
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+fun LineChart(
+    values: List<Int>,
+    modifier: Modifier = Modifier,
+    lineColor: Color = Color(0xFF3482FF),
+    unit: String = "",
+) {
+    // 自适应纵坐标：nice-max（1/2/5×10^n 规整）+ 顶部留白，波动小时不放大到顶
+    val rawMax = values.maxOrNull() ?: 1
+    val maxV = niceMax(rawMax).coerceAtLeast(1)
+    val gridColor = LocalIntimaPalette.current.textHint.copy(alpha = 0.25f)
+    val axisColor = LocalIntimaPalette.current.textHint
+    Column(modifier = modifier) {
+        // 纵轴刻度（顶/中/底三条参考线 + 右对齐标签）
+        Row(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+            Column(modifier = Modifier.width(40.dp).fillMaxHeight().padding(end = 4.dp)) {
+                listOf(maxV, maxV / 2, 0).forEachIndexed { idx, label ->
+                    if (idx == 0) {
+                        M3Text(
+                            formatAxis(label, unit), fontSize = 10.sp,
+                            color = axisColor,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                        M3Text(
+                            formatAxis(label, unit), fontSize = 10.sp,
+                            color = axisColor,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+            Canvas(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                if (values.size < 2) return@Canvas
+                val stepX = size.width / (values.size - 1)
+                val plotH = size.height * 0.9f - 8f
+                // 三条横向参考线
+                listOf(1f, 0.5f, 0f).forEach { frac ->
+                    val y = size.height - frac * plotH - 8f
+                    drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5f)
+                }
+                var path = androidx.compose.ui.graphics.Path()
+                values.forEachIndexed { i, v ->
+                    val x = i * stepX
+                    val y = size.height - (v.toFloat() / maxV) * plotH - 8f
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(path, lineColor, style = Stroke(width = 6f))
+                // 端点
+                val lastX = (values.size - 1) * stepX
+                val lastY = size.height - (values.last().toFloat() / maxV) * plotH - 8f
+                drawCircle(lineColor, radius = 8f, center = Offset(lastX, lastY))
+            }
         }
-        drawPath(path, lineColor, style = Stroke(width = 6f))
-        // 端点
-        val lastX = (values.size - 1) * stepX
-        val lastY = size.height - (values.last().toFloat() / maxV) * size.height * 0.9f - 8f
-        drawCircle(lineColor, radius = 8f, center = Offset(lastX, lastY))
+        // X 轴首尾标签（周次/日期范围由调用方传入 values 语义，这里显示首尾索引段）
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+            Spacer(modifier = Modifier.width(40.dp))
+            M3Text("", fontSize = 10.sp)
+        }
     }
+}
+
+/** nice number 上取整：把最大值规整到 1/2/5×10^n，让刻度整数好看 */
+private fun niceMax(v: Int): Int {
+    if (v <= 5) return 5
+    var mag = 1
+    while (mag * 10 <= v) mag *= 10
+    val n = v.toDouble() / mag
+    val nice = when {
+        n <= 1 -> 1.0
+        n <= 2 -> 2.0
+        n <= 5 -> 5.0
+        else -> 10.0
+    }
+    return (nice * mag).toInt()
+}
+
+/** 轴标签格式：分钟单位下超 60 显示 h m */
+private fun formatAxis(v: Int, unit: String): String = when {
+    unit == "分钟" && v >= 60 -> if (v % 60 == 0) "${v / 60}h" else "${v / 60}h${v % 60}m"
+    unit.isNotBlank() -> "$v$unit"
+    else -> "$v"
 }
 
 /** 横向条形图（参与者分布 / 组合排行） */
