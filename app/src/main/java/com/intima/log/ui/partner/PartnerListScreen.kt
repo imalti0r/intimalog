@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -383,6 +386,10 @@ private fun PartnerMenuItem(text: String, onClick: () -> Unit, danger: Boolean =
     )
 }
 
+/** 预置头像 Emoji（追加自定义项时校验用） */
+private val presetEmojis = listOf("🙂", "😊", "😘", "🥰", "😎", "🤗", "🐱", "🌸", "⭐", "🌙", "🔥", "💫")
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddPartnerDialog(
     initial: Partner? = null,
@@ -395,8 +402,8 @@ private fun AddPartnerDialog(
     var gender by remember { mutableStateOf(initial?.gender ?: Gender.UNDISCLOSED) }
     var regular by remember { mutableStateOf(initial?.isRegular ?: true) }
     var duplicateOf by remember { mutableStateOf<Partner?>(null) }
-
-    val emojis = listOf("🙂", "😊", "😘", "🥰", "😎", "🤗", "🐱", "🌸", "⭐", "🌙", "🔥", "💫")
+    var customEmojiMode by remember { mutableStateOf(initial?.emoji?.let { it !in presetEmojis } ?: false) }
+    var customEmoji by remember { mutableStateOf(if (customEmojiMode) initial?.emoji ?: "" else "") }
 
     // 重名时先弹确认
     duplicateOf?.let { dup ->
@@ -458,16 +465,83 @@ private fun AddPartnerDialog(
                     }
                 },
             )
-            // Emoji 选择
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                emojis.take(8).forEach { e ->
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(if (emoji == e) avatarColor(1) else LocalIntimaPalette.current.chipBg, CircleShape)
-                            .clickable { emoji = e },
-                        contentAlignment = Alignment.Center,
-                    ) { M3Text(e, fontSize = 18.sp) }
+            // Emoji 选择：统一 40dp 格子、横向滑动翻页、末尾 ➕ 自定义
+            val emojiCells = if (customEmojiMode) presetEmojis else presetEmojis + "+"
+            Column {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    emojiCells.forEach { e ->
+                        if (e == "+") {
+                            // 自定义 emoji：点开后出现输入格
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        if (customEmojiMode) avatarColor(1) else LocalIntimaPalette.current.chipBg,
+                                        CircleShape,
+                                    )
+                                    .clickable {
+                                        customEmojiMode = true
+                                        if (customEmoji.isEmpty()) emoji = "🙂"
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) { M3Text("＋", fontSize = 16.sp, color = LocalIntimaPalette.current.text) }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        when {
+                                            customEmojiMode -> LocalIntimaPalette.current.chipBg
+                                            emoji == e -> avatarColor(1)
+                                            else -> LocalIntimaPalette.current.chipBg
+                                        },
+                                        CircleShape,
+                                    )
+                                    .clickable {
+                                        if (customEmojiMode) {
+                                            customEmojiMode = false
+                                            customEmoji = ""
+                                        }
+                                        emoji = e
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) { M3Text(e, fontSize = 20.sp) }
+                        }
+                    }
+                    if (customEmojiMode) {
+                        // 自定义 emoji 输入格：用户从系统键盘输入任意字符，取第一个 grapheme
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(avatarColor(1), CircleShape)
+                                .clickable { },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicTextField(
+                                value = customEmoji,
+                                onValueChange = { v ->
+                                    val trimmed = v.take(4) // emoji + 变体符上限
+                                    customEmoji = trimmed
+                                    if (trimmed.isNotBlank()) emoji = trimmed
+                                },
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 20.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                ),
+                                modifier = Modifier.size(40.dp).padding(4.dp),
+                            )
+                        }
+                    }
+                }
+                if (customEmojiMode && customEmoji.isBlank()) {
+                    M3Text(
+                        "点击最后一个格子，用键盘输入任意 emoji",
+                        fontSize = 11.sp,
+                        color = LocalIntimaPalette.current.textHint,
+                    )
                 }
             }
             // 性别
