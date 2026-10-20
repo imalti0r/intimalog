@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -104,6 +105,16 @@ fun EmptyAvatar(size: Dp, modifier: Modifier = Modifier) {
             .background(Color(0x1A808080), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Text("？", color = Color(0xFF9E9E9E), fontSize = (size.value * 0.5f).sp)
+        // 「？」全角字形自带左右留白且分布不对称，圆内直接 Center 会视觉偏左：
+        // 文本撑满整圆宽度 + textAlign 居中，再微调垂直位置抵消字形底部留白
+        Text(
+            "？",
+            color = Color(0xFF9E9E9E),
+            fontSize = (size.value * 0.5f).sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = (size.value * 0.06f).dp),
+        )
     }
 }
