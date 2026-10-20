@@ -114,12 +114,12 @@ fun CalendarScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Icon(Icons.Rounded.KeyboardArrowLeft, "上月", modifier = Modifier.size(28.dp).clickable { viewModel.prevMonth() })
+            Icon(Icons.Rounded.KeyboardArrowLeft, "上月", tint = LocalIntimaPalette.current.text, modifier = Modifier.size(28.dp).clickable { viewModel.prevMonth() })
             M3Text(
                 "${viewModel.month.year} 年 ${viewModel.month.monthValue} 月",
                 fontSize = 20.sp, fontWeight = FontWeight.Bold,
             )
-            Icon(Icons.Rounded.KeyboardArrowRight, "下月", modifier = Modifier.size(28.dp).clickable { viewModel.nextMonth() })
+            Icon(Icons.Rounded.KeyboardArrowRight, "下月", tint = LocalIntimaPalette.current.text, modifier = Modifier.size(28.dp).clickable { viewModel.nextMonth() })
         }
 
         MonthGrid(

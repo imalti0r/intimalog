@@ -71,7 +71,7 @@ fun OnboardingScreen(
                 M3Text("欢迎使用", fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 M3Text(
                     "所有数据仅保存在本机加密数据库\n不联网、不上传",
-                    fontSize = 14.sp, color = Color(0xFF888888), lineHeight = 22.sp,
+                    fontSize = 14.sp, color = LocalIntimaPalette.current.textHint, lineHeight = 22.sp,
                     modifier = Modifier.padding(vertical = 16.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -80,7 +80,7 @@ fun OnboardingScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
-                                    if (gender == g) Color(0xFF3482FF) else Color.White,
+                                    if (gender == g) top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary else LocalIntimaPalette.current.card,
                                 )
                                 .clickable { gender = g }
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
@@ -97,7 +97,7 @@ fun OnboardingScreen(
                 M3Text("设置 PIN（可选，4-6 位）", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 M3Text(
                     "用于应用锁。跳过则不启用锁",
-                    fontSize = 13.sp, color = Color(0xFF888888),
+                    fontSize = 13.sp, color = LocalIntimaPalette.current.textHint,
                     modifier = Modifier.padding(vertical = 12.dp),
                 )
                 M3Text(

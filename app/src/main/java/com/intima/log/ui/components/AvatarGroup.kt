@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intima.log.data.db.Partner
+import com.intima.log.ui.theme.LocalIntimaPalette
 import com.intima.log.ui.theme.avatarColor
 
 /**
@@ -30,7 +31,7 @@ fun AvatarGroup(
     modifier: Modifier = Modifier,
     maxVisible: Int = 3,
     size: Dp = 32.dp,
-    borderColor: Color = Color.White,
+    borderColor: Color = LocalIntimaPalette.current.card,
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         if (partners.isEmpty()) {
@@ -62,7 +63,7 @@ fun AvatarGroup(
 fun PartnerAvatar(
     partner: Partner,
     size: Dp,
-    borderColor: Color = Color.White,
+    borderColor: Color = LocalIntimaPalette.current.card,
     modifier: Modifier = Modifier,
 ) {
     Box(

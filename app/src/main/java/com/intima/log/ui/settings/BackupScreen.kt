@@ -264,7 +264,7 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
                         }
                     }
                     .padding(14.dp),
-            ) { M3Text("保存配置", fontSize = 14.sp, color = Color(0xFF3482FF)) }
+            ) { M3Text("保存配置", fontSize = 14.sp, color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary) }
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -272,7 +272,7 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
                     .background(LocalIntimaPalette.current.card)
                     .clickable { viewModel.webDavStat { davMessage = "远端：$it" } }
                     .padding(14.dp),
-            ) { M3Text("查看远端备份", fontSize = 14.sp, color = Color(0xFF3482FF)) }
+            ) { M3Text("查看远端备份", fontSize = 14.sp, color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary) }
         }
         ActionRow("上传备份到 WebDAV", enabled = pin.length >= 4) {
             viewModel.webDavUpload(pin) { davMessage = it }

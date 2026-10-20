@@ -88,6 +88,9 @@ fun IntimaTheme(
     CompositionLocalProvider(
         LocalIntimaPalette provides palette,
         LocalDarkTheme provides darkTheme,
+        // material3 Text/Icon 未显式指定颜色时取 LocalContentColor（默认黑），
+        // 深色主题下必须翻转，否则满屏黑字不可见
+        androidx.compose.material3.LocalContentColor provides palette.text,
     ) {
         MiuixTheme(colors = colors, content = content)
     }

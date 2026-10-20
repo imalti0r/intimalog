@@ -112,7 +112,7 @@ fun CombinationListScreen(
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        AvatarGroup(partners = partners, size = 36.dp, borderColor = Color.White)
+                        AvatarGroup(partners = partners, size = 36.dp)
                         Column(Modifier.padding(start = 16.dp)) {
                             M3Text(
                                 partners.joinToString(" × ") { it.nickname },
