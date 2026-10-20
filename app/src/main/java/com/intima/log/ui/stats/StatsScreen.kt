@@ -243,14 +243,6 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             if (viewModel.toyStats.isEmpty()) M3Text("暂无数据", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
             else HBarChart(rows = viewModel.toyStats, barColor = Color(0xFFFF9500))
         }
-        CardBlock("组合排行 Top5") {
-            if (viewModel.combinations.isEmpty()) M3Text("暂无多人组合", fontSize = 13.sp, color = LocalIntimaPalette.current.textHint)
-            else HBarChart(
-                rows = viewModel.combinations.map { c ->
-                    c.partnerIds.joinToString("+") { "#$it" } to c.sessionCount
-                },
-            )
-        }
         CardBlock("热力图（近一年 · 按场次）") {
             Heatmap(dayCounts = viewModel.heatmap)
         }

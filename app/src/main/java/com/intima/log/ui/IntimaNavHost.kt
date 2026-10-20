@@ -121,8 +121,8 @@ fun IntimaNavHost() {
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
             // 统一过渡策略（initialState/targetState 都能拿到 route）：
             // 1) 主 Tab → 主 Tab：整页按 Tab 序号方向滑动（跨多 Tab 一次滑到位）
-            // 2) 一级 → 二级：二级从右滑入覆盖，一级静止
-            // 3) 返回：二级向右滑出，露出静止的一级页
+            // 2) 一级 → 二级：二级从右滑入，一级向左视差滑出 30%
+            // 3) 返回（反向）：二级向右滑出，一级从左视差滑回 30%
             enterTransition = {
                 val from = initialState.destination.route
                 val to = targetState.destination.route
@@ -142,12 +142,14 @@ fun IntimaNavHost() {
                         slideOutHorizontally(tween(TAB_DUR, easing = EASE_OUT)) { full ->
                             if (tabIndex(to) > tabIndex(from)) -full else full
                         }
-                    else -> ExitTransition.None   // 一级页保持不动，被二级覆盖
+                    else -> slideOutHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { -it / 3 } // 一级向左视差
                 }
             },
-            popEnterTransition = { EnterTransition.None },     // 返回时一级页静止露出
+            popEnterTransition = {
+                slideInHorizontally(tween(PAGE_DUR, easing = EASE_OUT)) { -it / 3 } // 一级从左视差滑回
+            },
             popExitTransition = {
-                slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN)) { it }
+                slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN)) { it }      // 二级向右滑出
             },
         ) {
             composable(Routes.HOME) {
