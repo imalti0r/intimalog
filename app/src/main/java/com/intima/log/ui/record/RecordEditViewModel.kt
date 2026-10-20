@@ -109,14 +109,21 @@ class RecordEditViewModel @Inject constructor(
                 val existing = recordRepository.byId(recordId) ?: return@launch
                 state = state.copy(
                     selectedIds = existing.partners.map { it.id }.toSet(),
-                    protections = existing.record.protections.split(",").filter { it.isNotBlank() }
-                        .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }.toSet()
-                        .ifEmpty { setOf(existing.record.protection) },
-                    customProtections = existing.record.customProtections.split(",").filter { it.isNotBlank() }.toSet(),
+                    // 旧记录的预置枚举保护措施转成自定义名显示（预置项已从 UI 移除）
+                    customProtections = (
+                        existing.record.protections.split(",").filter { it.isNotBlank() }
+                            .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }
+                            .ifEmpty { listOf(existing.record.protection) }
+                            .map { it.label() } +
+                        existing.record.customProtections.split(",").filter { it.isNotBlank() }
+                        ).distinct().toSet(),
                     rating = existing.record.rating,
                     moodTag = existing.record.moodTags,
-                    place = existing.record.place,
-                    customPlaces = existing.record.customPlaces.split(",").filter { it.isNotBlank() }.toSet(),
+                    // 旧记录的预置地点转成自定义名显示（预置项已从 UI 移除）
+                    customPlaces = (
+                        (if (existing.record.place != Place.NOT_RECORDED) listOf(existing.record.place.label()) else emptyList()) +
+                        existing.record.customPlaces.split(",").filter { it.isNotBlank() }
+                        ).distinct().toSet(),
                     positions = existing.record.positions.split(",").filter { it.isNotBlank() },
                     toys = existing.record.toys.split(",").filter { it.isNotBlank() },
                     note = existing.record.note,
@@ -210,11 +217,10 @@ class RecordEditViewModel @Inject constructor(
                     primaryPartnerId = ids.firstOrNull(),
                     startTime = state.startTime,
                     endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis(),
-                    protections = state.protections.toList(),
+                    protections = emptyList(),
                     customProtections = state.customProtections.toList(),
                     rating = state.rating,
                     moodTag = state.moodTag,
-                    place = state.place,
                     customPlaces = state.customPlaces.toList(),
                     positions = state.positions,
                     toys = state.toys,

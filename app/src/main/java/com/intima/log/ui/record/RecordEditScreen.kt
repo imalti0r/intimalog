@@ -73,7 +73,6 @@ fun Place.label(): String = when (this) {
     Place.OTHER -> "其他"
     Place.NOT_RECORDED -> "未记录"
 }
-
 /** 记录编辑 / 新建页 */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -186,24 +185,14 @@ fun RecordEditScreen(
             }
         }
 
-        // 保护措施（预置枚举多选 + 自定义多选；➕ 跳自定义保护措施管理）
-        SectionTitleWithAdd("保护措施（可多选）") { onManageTags("protection") }
+        // 保护措施（完全自定义：从保护措施管理页读取，多选；➕ 跳管理页）
+        SectionTitleWithAdd("保护措施") { onManageTags("protection") }
         ChipFlow(
-            items = Protection.entries.map { it.name },
-            selected = state.protections.map { it.name }.toSet(),
-            labelOf = { n -> runCatching { Protection.valueOf(n) }.getOrNull()?.label() ?: n },
-            onToggle = { n -> viewModel.toggleProtection(runCatching { Protection.valueOf(n) }.getOrNull() ?: return@ChipFlow) },
-            emptyText = "",
+            items = state.knownCustomProtections,
+            selected = state.customProtections,
+            onToggle = { viewModel.toggleCustomProtection(it) },
+            emptyText = "暂无保护措施，点右上 ➕ 添加",
         )
-        if (state.knownCustomProtections.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            ChipFlow(
-                items = state.knownCustomProtections,
-                selected = state.customProtections,
-                onToggle = { viewModel.toggleCustomProtection(it) },
-                emptyText = "",
-            )
-        }
 
         // 体位（管理页维护的标签，多选；末尾入口跳管理页）
         // 体位（管理页维护的标签，多选；➕ 跳管理页）
@@ -260,26 +249,14 @@ fun RecordEditScreen(
             }
         }
 
-        // 地点（预置单选 + 自定义多选；➕ 跳自定义地点管理）
+        // 地点（完全自定义：从地点管理页读取，多选；➕ 跳管理页）
         SectionTitleWithAdd("地点") { onManageTags("place") }
         ChipFlow(
-            items = listOf(Place.HOME, Place.HOTEL, Place.OTHER).map { it.name },
-            selected = if (state.place == Place.NOT_RECORDED) emptySet() else setOf(state.place.name),
-            labelOf = { n -> runCatching { Place.valueOf(n) }.getOrNull()?.label() ?: n },
-            onToggle = { n ->
-                runCatching { Place.valueOf(n) }.getOrNull()?.let { viewModel.setPlace(it) }
-            },
-            emptyText = "",
+            items = state.knownCustomPlaces,
+            selected = state.customPlaces,
+            onToggle = { viewModel.toggleCustomPlace(it) },
+            emptyText = "暂无地点，点右上 ➕ 添加",
         )
-        if (state.knownCustomPlaces.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            ChipFlow(
-                items = state.knownCustomPlaces,
-                selected = state.customPlaces,
-                onToggle = { viewModel.toggleCustomPlace(it) },
-                emptyText = "",
-            )
-        }
 
         // 备注
         TextField(
