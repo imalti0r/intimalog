@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intima.log.ui.theme.LocalIntimaPalette
@@ -67,7 +68,7 @@ fun StatsBasisSwitcher(
     }
 }
 
-/** 环形图（保护措施 / 多人占比） */
+/** 环形图（保护措施 / 多人占比）：圆环居中，图例在右侧等宽列（名称 + 次数 + 百分比，超长省略号） */
 data class PieSlice(val label: String, val value: Int, val color: Color)
 
 @Composable
@@ -78,39 +79,77 @@ fun DonutChart(
     centerText: String = "",
 ) {
     val total = slices.sumOf { it.value }.coerceAtLeast(1)
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Canvas(modifier = Modifier.size(150.dp)) {
-            var startAngle = -90f
-            val diameter = minOf(size.width, size.height) - stroke * 2
-            val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-            slices.filter { it.value > 0 }.forEach { slice ->
-                val sweep = 360f * slice.value / total
-                drawArc(
-                    color = slice.color,
-                    startAngle = startAngle,
-                    sweepAngle = sweep,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = Size(diameter, diameter),
-                    style = Stroke(width = stroke),
-                )
-                startAngle += sweep
+    val palette = LocalIntimaPalette.current
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // 左：圆环（含中心文字）整体在剩余空间中居中
+        Box(
+            modifier = Modifier.weight(1.1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Canvas(modifier = Modifier.size(130.dp)) {
+                    var startAngle = -90f
+                    val diameter = minOf(size.width, size.height) - stroke * 2
+                    val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
+                    slices.filter { it.value > 0 }.forEach { slice ->
+                        val sweep = 360f * slice.value / total
+                        drawArc(
+                            color = slice.color,
+                            startAngle = startAngle,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = Size(diameter, diameter),
+                            style = Stroke(width = stroke),
+                        )
+                        startAngle += sweep
+                    }
+                }
+                if (centerText.isNotEmpty()) {
+                    M3Text(centerText, fontSize = 12.sp, color = palette.textHint)
+                }
             }
         }
-        if (centerText.isNotEmpty()) {
-            M3Text(centerText, fontSize = 12.sp, color = LocalIntimaPalette.current.textHint)
-        }
-        // 图例
-        Row(
-            modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        // 右：图例列——每行结构固定（色点 | 名称(弹性,超长省略) | 次数 | 百分比），起点对齐、占宽一致
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             slices.forEach { slice ->
+                val pct = if (total > 0 && slice.value > 0) slice.value * 100f / total else 0f
+                val pctText = if (slice.value > 0) "%.0f%%".format(pct) else "0%"
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(8.dp).background(slice.color, CircleShape))
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .background(slice.color, CircleShape),
+                    )
                     M3Text(
-                        " ${slice.label} ${slice.value}",
-                        fontSize = 11.sp, color = LocalIntimaPalette.current.textSub,
+                        slice.label,
+                        fontSize = 11.sp,
+                        color = palette.text,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 6.dp),
+                    )
+                    M3Text(
+                        "${slice.value}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = palette.text,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.widthIn(min = 24.dp),
+                    )
+                    M3Text(
+                        pctText,
+                        fontSize = 11.sp,
+                        color = palette.textHint,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.widthIn(min = 34.dp),
                     )
                 }
             }
