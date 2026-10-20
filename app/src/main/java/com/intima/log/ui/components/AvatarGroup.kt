@@ -105,16 +105,14 @@ fun EmptyAvatar(size: Dp, modifier: Modifier = Modifier) {
             .background(Color(0x1A808080), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        // 「？」全角字形自带左右留白且分布不对称，圆内直接 Center 会视觉偏左：
-        // 文本撑满整圆宽度 + textAlign 居中，再微调垂直位置抵消字形底部留白
+        // 半角问号字形对称，撑满圆宽 + textAlign 居中即可
         Text(
-            "？",
+            "?",
             color = Color(0xFF9E9E9E),
             fontSize = (size.value * 0.5f).sp,
+            fontWeight = FontWeight.Medium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (size.value * 0.06f).dp),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
