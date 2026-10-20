@@ -2,6 +2,8 @@ package com.intima.log.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -129,6 +131,7 @@ fun IntimaNavHost() {
                 val to = targetState.destination.route
                 if (tabIndex(from) >= 0 && tabIndex(to) >= 0) EnterTransition.None
                 else slideInHorizontally(tween(PAGE_DUR, easing = EASE_IN_OUT)) { it }
+                    .plus(fadeIn(tween(PAGE_DUR, easing = EASE_IN_OUT)))
             },
             exitTransition = {
                 val from = initialState.destination.route
@@ -142,6 +145,7 @@ fun IntimaNavHost() {
                 val from = initialState.destination.route
                 if (tabIndex(from) >= 0) ExitTransition.None
                 else slideOutHorizontally(tween(PAGE_DUR, easing = EASE_IN_OUT)) { it }
+                    .plus(fadeOut(tween(PAGE_DUR, easing = EASE_IN_OUT)))
             },
         ) {
             composable(Routes.HOME) {

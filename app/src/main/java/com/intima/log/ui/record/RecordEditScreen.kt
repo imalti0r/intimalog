@@ -90,6 +90,7 @@ fun RecordEditScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(LocalIntimaPalette.current.bg)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
