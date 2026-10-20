@@ -21,6 +21,7 @@ import androidx.compose.material3.Text as M3Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
@@ -244,7 +245,7 @@ fun HBarChart(
     }
 }
 
-/** GitHub 风格热力图（近一年，恒按场次） */
+/** GitHub 风格热力图（近一年，恒按场次）：圆角方块 + 色阶图例 */
 @Composable
 fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modifier) {
     val dark = LocalIntimaPalette.current.isDark
@@ -255,6 +256,7 @@ fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modif
     }
     val today = java.time.LocalDate.now()
     val start = today.minusDays(363)
+    val cornerPx = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
     Canvas(modifier = modifier.fillMaxWidth().height(96.dp)) {
         val cell = size.width / 53f
         dayCounts.forEach { (date, count) ->
@@ -269,11 +271,32 @@ fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modif
                 count <= 4 -> 3
                 else -> 4
             }
-            drawRect(
+            drawRoundRect(
                 color = levels[level],
                 topLeft = Offset(col * cell, row * (size.height / 7f)),
                 size = Size(cell * 0.85f, size.height / 7f * 0.85f),
+                cornerRadius = CornerRadius(cornerPx, cornerPx),
             )
         }
+    }
+    // 图例：少 → 多
+    val palette = LocalIntimaPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        M3Text("少", fontSize = 10.sp, color = palette.textHint)
+        levels.forEach { c ->
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .size(10.dp)
+                    .background(c, RoundedCornerShape(3.dp)),
+            )
+        }
+        M3Text("多", fontSize = 10.sp, color = palette.textHint)
     }
 }
