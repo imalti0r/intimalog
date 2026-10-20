@@ -146,12 +146,13 @@ fun HBarChart(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { (label, v) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // 固定最小标签宽度：所有条形左端对齐同一列
+                // 标签列固定宽度区间：所有条形左端严格对齐；超长标签省略号截断
                 M3Text(
                     label, fontSize = 12.sp, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     color = LocalIntimaPalette.current.textSub,
                     modifier = Modifier
-                        .widthIn(min = 88.dp)
+                        .widthIn(min = 88.dp, max = 132.dp)
                         .padding(end = 8.dp),
                 )
                 Box(
