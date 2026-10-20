@@ -67,8 +67,7 @@ class GetCombinationStatsUseCase @Inject constructor(
 /** 场景模板套用：只取组合/措施/评分/地点，绝不覆盖时间 */
 data class TemplateApplication(
     val partnerIds: List<Long>,
-    val protection: com.intima.log.data.db.Protection,
-    val rating: Int,
+        val rating: Int,
     val place: com.intima.log.data.db.Place,
 )
 
@@ -80,8 +79,7 @@ class ApplyTemplateUseCase @Inject constructor(
         val t: SceneTemplate = templateRepository.byId(templateId) ?: return null
         return TemplateApplication(
             partnerIds = parseIds(t.partnerIdsJson),
-            protection = t.protection,
-            rating = t.rating,
+                        rating = t.rating,
             place = t.place,
         )
     }

@@ -14,8 +14,6 @@ import java.security.SecureRandom
 class Converters {
     @TypeConverter fun genderToString(g: Gender): String = g.name
     @TypeConverter fun stringToGender(s: String): Gender = Gender.valueOf(s)
-    @TypeConverter fun protectionToString(p: Protection): String = p.name
-    @TypeConverter fun stringToProtection(s: String): Protection = Protection.valueOf(s)
     @TypeConverter fun placeToString(p: Place): String = p.name
     @TypeConverter fun stringToPlace(s: String): Place = Place.valueOf(s)
     @TypeConverter fun basisToString(b: StatsBasis): String = b.name
@@ -32,7 +30,7 @@ class Converters {
         SceneTemplate::class,
         CustomTagEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 
@@ -56,7 +54,7 @@ abstract class IntimaDatabase : RoomDatabase() {
             System.loadLibrary("sqlcipher")
             return Room.databaseBuilder(context, IntimaDatabase::class.java, DB_NAME)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .fallbackToDestructiveMigration(false)
                 .build()
         }
@@ -110,5 +108,30 @@ val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
     override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE sex_records ADD COLUMN customProtections TEXT NOT NULL DEFAULT ''")
         db.execSQL("ALTER TABLE sex_records ADD COLUMN customPlaces TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** v5→v6：彻底删除旧枚举保护措施——旧枚举值转中文名并入 customProtections，随后清空两个旧枚举列 */
+private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL("""
+            UPDATE sex_records SET customProtections =
+                CASE
+                    WHEN customProtections = '' THEN protection
+                    ELSE customProtections || ',' || protection
+                END
+            WHERE protection NOT IN ('NOT_RECORDED', 'NONE')
+        """)
+        db.execSQL("""
+            UPDATE sex_records SET customProtections =
+                CASE
+                    WHEN customProtections = '' THEN protections
+                    ELSE customProtections || ',' || protections
+                END
+            WHERE protections != ''
+        """)
+        db.execSQL("UPDATE sex_records SET customProtections = '无措施' WHERE protection = 'NONE' AND customProtections = ''")
+        db.execSQL("UPDATE sex_records SET customProtections = customProtections || ',无措施' WHERE protection = 'NONE' AND customProtections != ''")
+        db.execSQL("UPDATE sex_records SET protection = 'NOT_RECORDED', protections = ''")
     }
 }

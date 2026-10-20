@@ -3,7 +3,6 @@ package com.intima.log.data.repo
 import androidx.room.withTransaction
 import com.intima.log.data.db.IntimaDatabase
 import com.intima.log.data.db.PartnerDao
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.Place
 import com.intima.log.data.db.RecordDao
 import com.intima.log.data.db.RecordPartnerCrossRef
@@ -44,13 +43,11 @@ class RecordRepositoryImpl @Inject constructor(
             participantCount = distinctIds.size,
             startTime = draft.startTime,
             endTime = draft.endTime,
-            protection = draft.protections.firstOrNull() ?: draft.protection,
-            climax = draft.climax,
+                        climax = draft.climax,
             rating = draft.rating,
             moodTags = draft.moodTag,
             place = draft.place,
-            protections = draft.protections.joinToString(",") { it.name },
-            customProtections = draft.customProtections.joinToString(","),
+                        customProtections = draft.customProtections.joinToString(","),
             customPlaces = draft.customPlaces.joinToString(","),
             positions = draft.positions.joinToString(","),
             toys = draft.toys.joinToString(","),
@@ -121,8 +118,7 @@ class RecordRepositoryImpl @Inject constructor(
 
     override suspend fun partnerStats() = recordDao.partnerStats()
     override suspend fun partnerPersonTimes() = recordDao.partnerPersonTimes()
-    override suspend fun protectionCounts() = recordDao.protectionCounts()
-    override suspend fun multiPartnerBuckets() = recordDao.multiPartnerBuckets()
+        override suspend fun multiPartnerBuckets() = recordDao.multiPartnerBuckets()
     override suspend fun avgDurationSince(from: Long) = recordDao.avgDurationSince(from)
     override suspend fun rawTimesForHeatmap(from: Long) = recordDao.rawTimesForHeatmap(from)
 }

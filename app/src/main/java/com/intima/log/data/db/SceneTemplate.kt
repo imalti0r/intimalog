@@ -17,7 +17,7 @@ data class SceneTemplate(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val partnerIdsJson: String,           // JSON 数组 [1,2,3]
-    val protection: Protection = Protection.NOT_RECORDED,
+    val protection: String = "NOT_RECORDED",
     val rating: Int = 0,
     val place: Place = Place.NOT_RECORDED,
     val sortOrder: Int = 0,

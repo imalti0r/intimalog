@@ -8,17 +8,9 @@ import androidx.room.PrimaryKey
 enum class Gender { MALE, FEMALE, OTHER, UNDISCLOSED }
 
 /** 保护措施 */
-enum class Protection { NONE, CONDOM, PILL_SHORT, PILL_LONG, PILL_URGENT, OTHER, NOT_RECORDED }
 
 /** PILL 兼容：旧数据 PILL → 紧急避孕药显示 */
-fun Protection.labelOrLegacy(): Protection = this
 
-fun Protection.displayLabel(): String = when (this) {
-    Protection.PILL_SHORT -> "短效避孕药"
-    Protection.PILL_LONG -> "长效避孕药"
-    Protection.PILL_URGENT -> "紧急避孕药"
-    else -> this.name
-}
 
 /** 地点标签 */
 enum class Place { HOME, HOTEL, OTHER, NOT_RECORDED }

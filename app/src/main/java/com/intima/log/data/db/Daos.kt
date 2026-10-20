@@ -191,8 +191,7 @@ interface RecordDao {
     )
     suspend fun partnerPersonTimes(): List<PartnerPersonTimeRow>
 
-    @Query("SELECT protection, COUNT(*) AS cnt FROM sex_records GROUP BY protection")
-    suspend fun protectionCounts(): List<ProtectionCountRow>
+
 
     @Query(
         """
@@ -209,7 +208,6 @@ interface RecordDao {
 data class TimeCountRow(val startTime: Long, val participantCount: Int)
 data class CombinationRow(val recordId: Long, val partnerIds: String, val size: Int)
 data class PartnerPersonTimeRow(val partnerId: Long, val personTimes: Int)
-data class ProtectionCountRow(val protection: Protection, val cnt: Int)
 data class BucketCountRow(val bucket: Int, val cnt: Int)
 
 @Dao

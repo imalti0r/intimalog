@@ -174,10 +174,7 @@ fun RecordRow(
                 color = LocalIntimaPalette.current.textSub,
             )
             M3Text(
-                when (item.record.protection) {
-                    com.intima.log.data.db.Protection.CONDOM -> "安全措施 ✓"
-                    else -> ""
-                },
+                item.record.customProtections.split(",").filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { "" },
                 fontSize = 11.sp,
                 color = Color(0xFF03B585),
             )

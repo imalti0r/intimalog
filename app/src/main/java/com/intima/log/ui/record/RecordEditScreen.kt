@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.intima.log.data.db.MoodTags
 import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.Place
 import com.intima.log.ui.components.PartnerMultiSelect
 import top.yukonga.miuix.kmp.basic.Button
@@ -57,15 +56,6 @@ import com.intima.log.ui.theme.LocalIntimaPalette
 private val hm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /** 保护措施中文名 */
-fun Protection.label(): String = when (this) {
-    Protection.NONE -> "无措施"
-    Protection.CONDOM -> "安全套"
-    Protection.PILL_SHORT -> "短效避孕药"
-    Protection.PILL_LONG -> "长效避孕药"
-    Protection.PILL_URGENT -> "紧急避孕药"
-    Protection.OTHER -> "其他"
-    Protection.NOT_RECORDED -> "未记录"
-}
 
 fun Place.label(): String = when (this) {
     Place.HOME -> "家"

@@ -3,7 +3,6 @@ package com.intima.log.data.backup
 import android.content.Context
 import android.net.Uri
 import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.Place
 import com.intima.log.data.db.RecordPartnerCrossRef
 import com.intima.log.data.db.SexRecord
@@ -78,7 +77,7 @@ class BackupManager @Inject constructor(
                 id = r.record.id,
                 startTime = r.record.startTime,
                 endTime = r.record.endTime,
-                protection = r.record.protection.name,
+                protection = "NOT_RECORDED",
                 climax = r.record.climax,
                 rating = r.record.rating,
                 moodTags = r.record.moodTags,
@@ -137,19 +136,7 @@ class BackupManager @Inject constructor(
                 primaryPartnerId = br.partnerIds.firstOrNull()?.let { idMap[it] },
                 startTime = br.startTime,
                 endTime = br.endTime,
-                protection = Protection.NOT_RECORDED, // 兼容旧列；多选 protections 才是权威
-                climax = br.climax,
-                rating = br.rating,
-                moodTag = br.moodTags,
-                protections = br.protections.split(",").filter { it.isNotBlank() }
-                    .mapNotNull { n ->
-                        // 旧备份的 PILL → 紧急避孕药
-                        when (n) {
-                            "PILL" -> Protection.PILL_URGENT
-                            else -> runCatching { Protection.valueOf(n) }.getOrNull()
-                        }
-                    },
-                customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
+customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
                 positions = br.positions.split(",").filter { it.isNotBlank() },
                 toys = br.toys.split(",").filter { it.isNotBlank() },
                 place = runCatching { Place.valueOf(br.place) }.getOrDefault(Place.NOT_RECORDED),
@@ -180,7 +167,7 @@ class BackupManager @Inject constructor(
                     fmt(item.record.startTime),
                     item.record.endTime?.let(fmt) ?: "",
                     item.record.durationSeconds?.toString() ?: "",
-                    item.record.protection.name,
+                    "NOT_RECORDED",
                     item.record.place.name,
                     item.record.rating.toString(),
                     item.record.moodTags,

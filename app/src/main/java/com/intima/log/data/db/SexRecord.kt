@@ -18,7 +18,7 @@ data class SexRecord(
     val participantCount: Int = 0,
     val startTime: Long,
     val endTime: Long? = null,            // null = 进行中
-    val protection: Protection = Protection.NOT_RECORDED,
+    val protection: String = "NOT_RECORDED",   // 仅存兼容旧数据，新记录恒 "NOT_RECORDED"
     val climax: Int = -1,                 // -1 不记录 / 0 否 / 1 是
     val rating: Int = 0,                  // 满意度 1~5，0=未评
     val moodTags: String = "",            // 单个情绪标签（单选）

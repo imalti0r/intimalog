@@ -2,7 +2,6 @@ package com.intima.log
 
 import com.intima.log.data.db.Gender
 import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.SexRecord
 import com.intima.log.data.db.StatsBasis
 import com.intima.log.domain.usecase.ApplyTemplateUseCase

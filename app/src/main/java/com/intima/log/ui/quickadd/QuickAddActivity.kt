@@ -25,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.Place
 import com.intima.log.data.repo.PartnerRepository
 import com.intima.log.data.repo.ProfileRepository
@@ -58,8 +57,7 @@ class QuickAddActivity : AppCompatActivity() {
     private var partners by mutableStateOf(listOf<com.intima.log.data.db.Partner>())
     private var selected by mutableStateOf(setOf<Long>())
     private var multi by mutableStateOf(true)
-    private var protection by mutableStateOf(Protection.NOT_RECORDED)
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
@@ -73,12 +71,10 @@ class QuickAddActivity : AppCompatActivity() {
                     partners = partners,
                     selected = selected,
                     multi = multi,
-                    protection = protection,
-                    onToggle = { id ->
+                                        onToggle = { id ->
                         selected = if (id in selected) selected - id else selected + id
                     },
-                    onProtection = { protection = it },
-                    onSave = { finishNow() },
+                                        onSave = { finishNow() },
                     onDismiss = { finish() },
                 )
             }
@@ -92,8 +88,7 @@ class QuickAddActivity : AppCompatActivity() {
                     partnerIds = selected.toList(),
                     startTime = System.currentTimeMillis() - 30 * 60_000,   // 默认 30 分钟前开始
                     endTime = System.currentTimeMillis(),
-                    protection = protection,
-                )
+                                    )
             )
             IntimaWidget().updateAll(applicationContext)
             finish()
@@ -105,10 +100,8 @@ private fun QuickAddContent(
     partners: List<com.intima.log.data.db.Partner>,
     selected: Set<Long>,
     multi: Boolean,
-    protection: Protection,
-    onToggle: (Long) -> Unit,
-    onProtection: (Protection) -> Unit,
-    onSave: () -> Unit,
+        onToggle: (Long) -> Unit,
+        onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     Box(
@@ -140,23 +133,6 @@ private fun QuickAddContent(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Protection.entries.forEach { p ->
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                if (protection == p) Color(0xFF3482FF) else LocalIntimaPalette.current.chipBg,
-                                RoundedCornerShape(999.dp),
-                            )
-                            .clickable { onProtection(p) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        M3Text(
-                            p.label(),
-                            fontSize = 12.sp,
-                            color = if (protection == p) Color.White else LocalIntimaPalette.current.text,
-                        )
-                    }
-                }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(

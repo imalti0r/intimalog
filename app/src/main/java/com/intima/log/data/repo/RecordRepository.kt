@@ -12,8 +12,6 @@ data class RecordDraft(
     val primaryPartnerId: Long? = null,   // 主参与者（必须在 partnerIds 内）
     val startTime: Long,
     val endTime: Long? = null,
-    val protection: com.intima.log.data.db.Protection = com.intima.log.data.db.Protection.NOT_RECORDED,
-    val protections: List<com.intima.log.data.db.Protection> = emptyList(), // 多选保护措施
     val customProtections: List<String> = emptyList(),  // 自定义保护措施名
     val climax: Int = -1,
     val rating: Int = 0,
@@ -59,8 +57,7 @@ interface RecordRepository {
     suspend fun recordsContaining(partnerId: Long): List<SexRecordWithPartners>
     suspend fun partnerStats(): List<com.intima.log.data.db.PartnerWithStats>
     suspend fun partnerPersonTimes(): List<com.intima.log.data.db.PartnerPersonTimeRow>
-    suspend fun protectionCounts(): List<com.intima.log.data.db.ProtectionCountRow>
-    suspend fun multiPartnerBuckets(): List<com.intima.log.data.db.BucketCountRow>
+        suspend fun multiPartnerBuckets(): List<com.intima.log.data.db.BucketCountRow>
     suspend fun avgDurationSince(from: Long): Double?
     suspend fun rawTimesForHeatmap(from: Long): List<com.intima.log.data.db.TimeCountRow>
 }

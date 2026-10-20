@@ -27,7 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.intima.log.data.db.Partner
-import com.intima.log.data.db.Protection
 import com.intima.log.data.db.StatsBasis
 import com.intima.log.data.repo.PartnerRepository
 import com.intima.log.data.repo.ProfileRepository
@@ -123,15 +122,24 @@ class StatsViewModel @Inject constructor(
             // 逐场拆分计数（多选一场计入多个类别）；两者都空才归入「未记录」
             val byProtection = LinkedHashMap<String, Int>()
             fun bump(name: String) = byProtection.merge(name, 1, Int::plus)
+            fun legacyName(raw: String): String = when (raw.trim()) {
+                "NONE" -> "无措施"
+                "CONDOM" -> "安全套"
+                "PILL_SHORT" -> "短效避孕药"
+                "PILL_LONG" -> "长效避孕药"
+                "PILL_URGENT", "PILL" -> "紧急避孕药"
+                "OTHER" -> "其他"
+                else -> raw.trim()
+            }
+
             all.forEach { r ->
-                val enums = r.record.protections.split(",").filter { it.isNotBlank() }
-                    .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }
                 val customs = r.record.customProtections.split(",").filter { it.isNotBlank() }
-                if (enums.isEmpty() && customs.isEmpty()) {
-                    bump(protectionDisplayName(r.record.protection))
-                } else {
-                    enums.forEach { bump(protectionDisplayName(it)) }
-                    customs.forEach { bump(it) }
+                    .map { legacyName(it) }
+                when {
+                    customs.isNotEmpty() -> customs.forEach { bump(it) }
+                    // 防御：v6 迁移前的旧库残留枚举单值
+                    r.record.protection == "NONE" -> bump("无措施")
+                    else -> bump("未记录")
                 }
             }
             protectionSlices = byProtection.map { (name, n) ->
@@ -187,23 +195,6 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    private fun protectionColor(p: Protection): Color = when (p) {
-        Protection.CONDOM -> Color(0xFF03B585)
-        Protection.PILL_SHORT, Protection.PILL_LONG, Protection.PILL_URGENT -> Color(0xFF3482FF)
-        Protection.NONE -> Color(0xFFE94634)
-        Protection.OTHER -> Color(0xFF7B5CFF)
-        Protection.NOT_RECORDED -> Color(0xFF8E8E93)
-    }
-
-    private fun protectionDisplayName(p: Protection): String = when (p) {
-        Protection.NONE -> "无措施"
-        Protection.CONDOM -> "安全套"
-        Protection.PILL_SHORT -> "短效避孕药"
-        Protection.PILL_LONG -> "长效避孕药"
-        Protection.PILL_URGENT -> "紧急避孕药"
-        Protection.OTHER -> "其他"
-        Protection.NOT_RECORDED -> "未记录"
-    }
 
     /** 自定义保护措施条目按名称取色（稳定散列到预设色板） */
     private fun protectionColorByName(name: String): Color {

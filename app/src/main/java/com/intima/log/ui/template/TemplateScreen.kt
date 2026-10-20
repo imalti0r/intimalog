@@ -56,14 +56,13 @@ class TemplateViewModel @Inject constructor(
         viewModelScope.launch { partners = partnerRepository.listActive() }
     }
 
-    fun save(name: String, partnerIds: List<Long>, protection: com.intima.log.data.db.Protection, rating: Int, place: com.intima.log.data.db.Place) {
+    fun save(name: String, partnerIds: List<Long>, rating: Int, place: com.intima.log.data.db.Place) {
         viewModelScope.launch {
             repository.save(
                 SceneTemplate(
                     name = name.ifBlank { "模板" },
                     partnerIdsJson = ApplyTemplateUseCase.encodeIds(partnerIds),
-                    protection = protection,
-                    rating = rating,
+                                        rating = rating,
                     place = place,
                 )
             )
@@ -106,8 +105,7 @@ fun TemplateScreen(viewModel: TemplateViewModel = hiltViewModel()) {
                                 M3Text(
                                     buildString {
                                         append(if (names.isEmpty()) "未指定参与者" else names.joinToString(" + "))
-                                        append(" · ${template.protection.label()}")
-                                        if (template.rating > 0) append(" · ${"★".repeat(template.rating)}")
+                                                                                if (template.rating > 0) append(" · ${"★".repeat(template.rating)}")
                                     },
                                     fontSize = 12.sp, color = LocalIntimaPalette.current.textHint,
                                 )

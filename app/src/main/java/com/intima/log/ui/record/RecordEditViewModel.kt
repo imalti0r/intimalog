@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.intima.log.data.db.Partner
 import com.intima.log.data.db.Place
-import com.intima.log.data.db.Protection
 import com.intima.log.data.repo.PartnerRepository
 import com.intima.log.data.repo.ProfileRepository
 import com.intima.log.data.repo.RecordDraft
@@ -30,8 +29,7 @@ data class RecordEditState(
     val selectedIds: Set<Long> = emptySet(),
     val multiPartner: Boolean = true,
     val ongoing: Boolean = false,
-    val protections: Set<Protection> = emptySet(),  // 多选保护措施（预置枚举）
-    val customProtections: Set<String> = emptySet(), // 自定义保护措施（管理页维护）
+        val customProtections: Set<String> = emptySet(), // 自定义保护措施（管理页维护）
     val rating: Int = 0,
     val moodTag: String = "",                        // 情绪（单选）
     val place: Place = Place.NOT_RECORDED,          // 预置地点（单选）
@@ -110,13 +108,7 @@ class RecordEditViewModel @Inject constructor(
                 state = state.copy(
                     selectedIds = existing.partners.map { it.id }.toSet(),
                     // 旧记录的预置枚举保护措施转成自定义名显示（预置项已从 UI 移除）
-                    customProtections = (
-                        existing.record.protections.split(",").filter { it.isNotBlank() }
-                            .mapNotNull { n -> runCatching { Protection.valueOf(n) }.getOrNull() }
-                            .ifEmpty { listOf(existing.record.protection) }
-                            .map { it.label() } +
-                        existing.record.customProtections.split(",").filter { it.isNotBlank() }
-                        ).distinct().toSet(),
+                    customProtections = existing.record.customProtections.split(",").filter { it.isNotBlank() }.toSet(),
                     rating = existing.record.rating,
                     moodTag = existing.record.moodTags,
                     // 旧记录的预置地点转成自定义名显示（预置项已从 UI 移除）
@@ -150,20 +142,19 @@ class RecordEditViewModel @Inject constructor(
         state = state.copy(selectedIds = ids)
     }
 
-    fun toggleProtection(p: Protection) {
-        state = state.copy(protections = state.protections.let { if (p in it) it - p else it + p })
-    }
-    fun setRating(r: Int) { state = state.copy(rating = if (state.rating == r) 0 else r) }
-    fun setPlace(p: Place) { state = state.copy(place = if (state.place == p) Place.NOT_RECORDED else p) }
+    /** 勾选/取消一个受管标签；同时写库（首次使用自动入库），记录侧自由文本 */
+    fun setMood(m: String) { state = state.copy(moodTag = m) }
+
     fun toggleCustomPlace(name: String) {
         state = state.copy(customPlaces = state.customPlaces.let { if (name in it) it - name else it + name })
     }
+
     fun toggleCustomProtection(name: String) {
         state = state.copy(customProtections = state.customProtections.let { if (name in it) it - name else it + name })
     }
-    fun setMood(tag: String) { state = state.copy(moodTag = if (state.moodTag == tag) "" else tag) }
 
-    /** 勾选/取消一个受管标签；同时写库（首次使用自动入库），记录侧自由文本 */
+    fun setRating(r: Int) { state = state.copy(rating = r) }
+
     fun togglePosition(name: String) {
         if (name.isBlank()) return
         viewModelScope.launch { db.tagDao().insertIgnore("position", name.trim()) }
@@ -217,8 +208,7 @@ class RecordEditViewModel @Inject constructor(
                     primaryPartnerId = ids.firstOrNull(),
                     startTime = state.startTime,
                     endTime = state.endTime ?: if (state.ongoing) null else System.currentTimeMillis(),
-                    protections = emptyList(),
-                    customProtections = state.customProtections.toList(),
+                                        customProtections = state.customProtections.toList(),
                     rating = state.rating,
                     moodTag = state.moodTag,
                     customPlaces = state.customPlaces.toList(),
