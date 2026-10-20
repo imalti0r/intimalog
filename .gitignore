@@ -11,3 +11,7 @@ local.properties 2>/dev/null
 # 验证产物
 artifacts/
 build_log.txt
+
+build_log.txt
+test_log.txt
+*.log
