@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -80,10 +81,14 @@ fun DonutChart(
 ) {
     val total = slices.sumOf { it.value }.coerceAtLeast(1)
     val palette = LocalIntimaPalette.current
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // 左：圆环（含中心文字）整体在剩余空间中居中
+    Row(
+        modifier = modifier.fillMaxWidth().heightIn(min = 130.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        // 左：圆环（含中心文字）在整个卡片空间中水平垂直居中（与右侧图例列互不挤压）
         Box(
-            modifier = Modifier.weight(1.1f),
+            modifier = Modifier.width(150.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
