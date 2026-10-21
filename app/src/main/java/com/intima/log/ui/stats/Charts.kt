@@ -69,7 +69,7 @@ fun StatsBasisSwitcher(
     }
 }
 
-/** 环形图（保护措施 / 多人占比）：圆环居中，图例在右侧等宽列（名称 + 次数 + 百分比，超长省略号） */
+/** 环形图（保护措施 / 多人占比）：圆环在整个卡片内水平居中，图例在圆环下方等宽列（名称 + 次数 + 百分比，超长省略号） */
 data class PieSlice(val label: String, val value: Int, val color: Color)
 
 @Composable
@@ -81,14 +81,13 @@ fun DonutChart(
 ) {
     val total = slices.sumOf { it.value }.coerceAtLeast(1)
     val palette = LocalIntimaPalette.current
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth().heightIn(min = 130.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // 左：圆环（含中心文字）在整个卡片空间中水平垂直居中（与右侧图例列互不挤压）
+        // 上：圆环（含中心文字）在整个卡片空间中水平居中
         Box(
-            modifier = Modifier.width(150.dp),
+            modifier = Modifier.padding(top = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -115,11 +114,11 @@ fun DonutChart(
                 }
             }
         }
-        // 右：图例列——每行结构固定（色点 | 名称(弹性,超长省略) | 次数 | 百分比），起点对齐、占宽一致
+        // 下：图例列——每行结构固定（色点 | 名称(弹性,超长省略) | 次数 | 百分比），起点对齐、占宽一致
         Column(
             modifier = Modifier
-                .weight(1f)
-                .padding(end = 4.dp),
+                .fillMaxWidth()
+                .padding(top = 10.dp, start = 4.dp, end = 4.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             slices.forEach { slice ->
@@ -303,6 +302,8 @@ fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modif
     val cornerPx = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
     Canvas(modifier = modifier.fillMaxWidth().height(96.dp)) {
         val cell = size.width / 53f
+        // 格子固定为圆角正方形：边长取列宽与行高的较小值，不随屏幕宽高比例被拉扁
+        val cellSize = minOf(cell, size.height / 7f)
         dayCounts.forEach { (date, count) ->
             val daysFromStart = java.time.temporal.ChronoUnit.DAYS.between(start, date)
             if (daysFromStart < 0 || daysFromStart > 364) return@forEach
@@ -318,20 +319,24 @@ fun Heatmap(dayCounts: Map<java.time.LocalDate, Int>, modifier: Modifier = Modif
             drawRoundRect(
                 color = levels[level],
                 topLeft = Offset(col * cell, row * (size.height / 7f)),
-                size = Size(cell * 0.85f, size.height / 7f * 0.85f),
+                size = Size(cellSize * 0.85f, cellSize * 0.85f),
                 cornerRadius = CornerRadius(cornerPx, cornerPx),
             )
         }
     }
-    // 图例：少 → 多
+}
+
+/** 热力图图例（少 → 多）：独立组合函数，供标题行右侧等处复用 */
+@Composable
+fun HeatmapLegend() {
+    val dark = LocalIntimaPalette.current.isDark
+    val levels = if (dark) {
+        listOf(Color(0xFF2C2C2E), Color(0xFF1F5B33), Color(0xFF2C8C4B), Color(0xFF34A853), Color(0xFF6CCB7A))
+    } else {
+        listOf(Color(0xFFEBEDF0), Color(0xFF9BE9A8), Color(0xFF40C463), Color(0xFF30A14E), Color(0xFF216E39))
+    }
     val palette = LocalIntimaPalette.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         M3Text("少", fontSize = 10.sp, color = palette.textHint)
         levels.forEach { c ->
             Box(

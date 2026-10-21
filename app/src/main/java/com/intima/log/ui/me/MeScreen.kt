@@ -93,7 +93,6 @@ fun MeScreen(
             MeRow(Icons.Rounded.Toys, "玩具管理", "自定义玩具标签") { onNavigate("toys") }
             MeRow(Icons.Rounded.HealthAndSafety, "保护措施管理", "自定义保护措施标签") { onNavigate("protections") }
             MeRow(Icons.Rounded.Place, "地点管理", "自定义地点标签") { onNavigate("places") }
-            MeRow(Icons.Rounded.BarChart, "统计", "趋势、占比与排行") { onNavigate("stats") }
             MeRow(Icons.Rounded.Bookmark, "备份与同步", "导出加密备份 · WebDAV") { onNavigate("backup") }
             MeRow(Icons.Rounded.Settings, "设置", "应用锁与伪装") { onNavigate("settings") }
         }

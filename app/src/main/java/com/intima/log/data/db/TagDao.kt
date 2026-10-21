@@ -40,4 +40,14 @@ interface TagDao {
 
     @Query("SELECT name FROM custom_tags WHERE kind = :kind AND name = :name LIMIT 1")
     suspend fun findName(kind: String, name: String): String?
+
+    /** 备份恢复：全量读取 / 清空 / 按 id 写回 */
+    @Query("SELECT * FROM custom_tags ORDER BY id ASC")
+    suspend fun listAll(): List<CustomTagEntity>
+
+    @Query("DELETE FROM custom_tags")
+    suspend fun deleteAll()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReplace(tag: CustomTagEntity): Long
 }

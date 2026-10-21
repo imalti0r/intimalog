@@ -2,9 +2,14 @@ package com.intima.log.data.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
+import com.intima.log.data.db.CustomTagEntity
+import com.intima.log.data.db.IntimaDatabase
 import com.intima.log.data.db.Partner
+import com.intima.log.data.db.RecordPartnerCrossRef
+import com.intima.log.data.db.SceneTemplate
+import com.intima.log.data.db.SexRecord
 import com.intima.log.data.repo.PartnerRepository
-import com.intima.log.data.repo.RecordDraft
 import com.intima.log.data.repo.RecordRepository
 import com.intima.log.data.security.SecurityManager
 import kotlinx.serialization.Serializable
@@ -13,13 +18,16 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** 导出模型（含关联表） */
+/** 导出模型（v2：全量六类 —— 伴侣 / 记录 / 自定义标签四路 / 模板 / 用户资料） */
 @Serializable
 data class BackupPayload(
-    val version: Int = 1,
+    val version: Int = 2,
     val exportedAt: Long,
     val partners: List<BackupPartner>,
     val records: List<BackupRecord>,
+    val tags: List<BackupTag> = emptyList(),          // custom_tags 全部 kind
+    val templates: List<BackupTemplate> = emptyList(),// 场景模板
+    val profile: BackupProfile? = null,               // 用户资料（单行）
 )
 
 @Serializable
@@ -51,21 +59,45 @@ data class BackupRecord(
     val isBackfill: Boolean = false,
     val createdAt: Long,
     val partnerIds: List<Long> = emptyList(),   // 按参与顺序
+    val climaxesJson: String = "",              // 每人高潮次数 JSON（key=记录内顺序号，"me"=用户）
+    val splitGroupId: String? = null,           // 跨日拆分组（恢复时原样回填）
+    val splitIndex: Int = 0,
+)
+
+@Serializable
+data class BackupTag(val id: Long, val kind: String, val name: String)
+
+@Serializable
+data class BackupTemplate(
+    val id: Long,
+    val name: String,
+    val partnerIdsJson: String,          // JSON 数组 [1,2,3]
+    val rating: Int = 0,
+    val sortOrder: Int = 0,
+    val pinned: Boolean = false,
+    val createdAt: Long,
+)
+
+@Serializable
+data class BackupProfile(
+    val gender: String = "UNDISCLOSED",
+    val birthYear: Int? = null,
 )
 
 @Singleton
 class BackupManager @Inject constructor(
+    private val db: IntimaDatabase,
     private val recordRepository: RecordRepository,
     private val partnerRepository: PartnerRepository,
 ) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 
-    /** 导出为加密 .intima 字节 */
+    /** 导出为加密 .intima 字节（全量：伴侣 + 记录 + 四路自定义标签 + 模板 + 用户资料） */
     suspend fun exportEncrypted(pin: String): ByteArray {
-        val partners = partnerRepository.listActive().map { p ->
+        val partners = db.partnerDao().listActive().map { p ->
             BackupPartner(p.id, p.nickname, p.alias, p.emoji, p.colorIndex, p.gender.name, p.isRegular, p.archived, p.isImported, p.createdAt)
         }
-        val records = recordRepository.listAllWithPartners().map { r ->
+        val records = db.recordDao().listAllWithPartners().map { r ->
             BackupRecord(
                 id = r.record.id,
                 startTime = r.record.startTime,
@@ -80,62 +112,123 @@ class BackupManager @Inject constructor(
                 isBackfill = r.record.isBackfill,
                 createdAt = r.record.createdAt,
                 partnerIds = r.partners.map { it.id },
+                climaxesJson = r.record.climaxesJson,
+                splitGroupId = r.record.splitGroupId,
+                splitIndex = r.record.splitIndex,
             )
         }
-        val payload = BackupPayload(exportedAt = System.currentTimeMillis(), partners = partners, records = records)
+        val tags = db.tagDao().listAll().map { BackupTag(it.id, it.kind, it.name) }
+        val templates = db.templateDao().listAll().map {
+            BackupTemplate(it.id, it.name, it.partnerIdsJson, it.rating, it.sortOrder, it.pinned, it.createdAt)
+        }
+        val profile = db.profileDao().get()?.let {
+            BackupProfile(it.gender.name, it.birthYear)
+        }
+        val payload = BackupPayload(
+            exportedAt = System.currentTimeMillis(),
+            partners = partners,
+            records = records,
+            tags = tags,
+            templates = templates,
+            profile = profile,
+        )
         return SecurityManager.encryptExport(json.encodeToString(payload).toByteArray(Charsets.UTF_8), pin)
     }
 
     /**
-     * 导入：partnerId 不存在的创建占位伴侣（导入-未知N，isImported=true）。
-     * 返回 (导入记录数, 创建占位数)。
+     * 恢复（覆盖式）：单事务内清空本地全部业务数据（记录+关联+伴侣+四路标签+模板+用户资料），
+     * 再按备份原样写入。伴侣/记录/标签/模板保留原 id（跨设备恢复后数据完全一致）。
+     * 返回 (恢复记录数, 恢复伴侣数)。
      */
-    suspend fun importEncrypted(data: ByteArray, pin: String): Pair<Int, Int> {
+    suspend fun restoreEncrypted(data: ByteArray, pin: String): Pair<Int, Int> {
         val plain = SecurityManager.decryptExport(data, pin)
         val payload = json.decodeFromString<BackupPayload>(plain.toString(Charsets.UTF_8))
 
-        val existingIds = partnerRepository.listActive().map { it.id }.toSet()
-        val idMap = mutableMapOf<Long, Long>()   // 旧 id → 新 id
-        var placeholders = 0
+        db.withTransaction {
+            // ---- 清库（关联表随记录 CASCADE，显式删更稳） ----
+            db.recordDao().deleteAllLinks()
+            db.recordDao().deleteAll()
+            db.partnerDao().deleteAll()
+            db.tagDao().deleteAll()
+            db.templateDao().deleteAll()
 
-        // 伴侣映射：同 id 直接映射；缺失的建占位
-        payload.partners.forEach { bp ->
-            if (bp.id in existingIds) {
-                idMap[bp.id] = bp.id
-            } else {
-                val newId = partnerRepository.save(
+            // ---- 写伴侣（保留原 id） ----
+            payload.partners.forEach { bp ->
+                db.partnerDao().insert(
                     Partner(
-                        nickname = "导入-未知${++placeholders}",
+                        id = bp.id,
+                        nickname = bp.nickname,
+                        alias = bp.alias,
                         emoji = bp.emoji,
                         colorIndex = bp.colorIndex,
                         gender = runCatching { com.intima.log.data.db.Gender.valueOf(bp.gender) }
                             .getOrDefault(com.intima.log.data.db.Gender.UNDISCLOSED),
-                        isImported = true,
+                        isRegular = bp.isRegular,
+                        archived = bp.archived,
+                        isImported = bp.isImported,
                         createdAt = bp.createdAt,
                     )
                 )
-                idMap[bp.id] = newId
+            }
+            // 占位「已删除」行自愈（若备份链路里曾有 purge，保持其隔离态）
+            db.partnerDao().ensureDeletedPlaceholder()
+            db.partnerDao().quarantinePlaceholder()
+
+            // ---- 写记录（保留原 id）+ 重建关联表 ----
+            payload.records.forEach { br ->
+                db.recordDao().insert(
+                    SexRecord(
+                        id = br.id,
+                        participantCount = br.partnerIds.size,
+                        startTime = br.startTime,
+                        endTime = br.endTime,
+                        rating = br.rating,
+                        moodTags = br.moodTags,
+                        customProtections = br.customProtections,
+                        customPlaces = br.customPlaces,
+                        positions = br.positions,
+                        toys = br.toys,
+                        note = br.note,
+                        isBackfill = br.isBackfill,
+                        climaxesJson = br.climaxesJson,
+                        splitGroupId = br.splitGroupId,
+                        splitIndex = br.splitIndex,
+                        createdAt = br.createdAt,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                )
+                br.partnerIds.forEachIndexed { order, pid ->
+                    db.recordDao().insertLink(RecordPartnerCrossRef(br.id, pid, order, order == 0))
+                }
+            }
+
+            // ---- 写自定义标签（体位/玩具/保护措施/地点，保留原 id） ----
+            payload.tags.forEach { t ->
+                db.tagDao().insertReplace(CustomTagEntity(id = t.id, kind = t.kind, name = t.name))
+            }
+
+            // ---- 写模板（保留原 id；伴侣组合按 id 直接引用，恢复在同一事务内自洽） ----
+            payload.templates.forEach { t ->
+                db.templateDao().insert(
+                    SceneTemplate(
+                        id = t.id,
+                        name = t.name,
+                        partnerIdsJson = t.partnerIdsJson,
+                        rating = t.rating,
+                        sortOrder = t.sortOrder,
+                        pinned = t.pinned,
+                        createdAt = t.createdAt,
+                    )
+                )
+            }
+
+            // ---- 写用户资料（仅 gender/birthYear；PIN、伪装等本机设置不动） ----
+            payload.profile?.let { p ->
+                db.profileDao().ensureRow()
+                db.profileDao().restoreProfile(p.gender, p.birthYear)
             }
         }
-
-        var imported = 0
-        payload.records.forEach { br ->
-            val draft = RecordDraft(
-                partnerIds = br.partnerIds.mapNotNull { idMap[it] },
-                primaryPartnerId = br.partnerIds.firstOrNull()?.let { idMap[it] },
-                startTime = br.startTime,
-                endTime = br.endTime,
-                customProtections = br.customProtections.split(",").filter { it.isNotBlank() },
-                positions = br.positions.split(",").filter { it.isNotBlank() },
-                toys = br.toys.split(",").filter { it.isNotBlank() },
-                customPlaces = br.customPlaces.split(",").filter { it.isNotBlank() },
-                note = br.note,
-                isBackfill = true,
-            )
-            recordRepository.save(draft)
-            imported++
-        }
-        return imported to placeholders
+        return payload.records.size to payload.partners.size
     }
 
     /** CSV 明文导出（可选脱敏：P1/P2… 代替伴侣名） */

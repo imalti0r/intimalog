@@ -62,10 +62,10 @@ class BackupViewModel @Inject constructor(
             try {
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: return@launch onDone("无法读取文件")
-                val (records, placeholders) = backupManager.importEncrypted(bytes, pin)
-                onDone("导入 $records 条记录，创建 $placeholders 个占位伴侣")
+                val (records, partners) = backupManager.restoreEncrypted(bytes, pin)
+                onDone("恢复完成：$records 条记录、$partners 位伴侣（已覆盖本地数据）")
             } catch (e: Exception) {
-                onDone("导入失败：${e.message}")
+                onDone("恢复失败：${e.message}")
             }
         }
     }
@@ -131,8 +131,8 @@ class BackupViewModel @Inject constructor(
                     is WebDavClient.Result.Fail -> return@launch onDone(dl.message)
                     is WebDavClient.Result.Error -> return@launch onDone(dl.message)
                 }
-                val (records, placeholders) = backupManager.importEncrypted(bytes, pin)
-                onDone("恢复完成：$records 条记录，$placeholders 个占位伴侣")
+                val (records, partners) = backupManager.restoreEncrypted(bytes, pin)
+                onDone("恢复完成：$records 条记录、$partners 位伴侣（已覆盖本地数据）")
             } catch (e: Exception) {
                 onDone("恢复失败：${e.message}")
             }

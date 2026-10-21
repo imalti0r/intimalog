@@ -15,3 +15,7 @@ build_log.txt
 build_log.txt
 test_log.txt
 *.log
+
+# 内部状态与本地产物
+agent.md
+*.apk

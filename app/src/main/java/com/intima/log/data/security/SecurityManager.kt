@@ -129,11 +129,13 @@ object SecurityManager {
         return generator.generateKey()
     }
 
-    /** Keystore AES-GCM 加密，返回 base64(iv + ct) */
+    /** Keystore AES-GCM 加密，返回 base64(iv + ct)。
+     *  加密时不传 IV（Android Keystore 禁止 caller-provided IV），由 Keystore 生成后从 cipher 读回。 */
     fun encryptWithKeystore(plain: String): String {
-        val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
         val cipher = Cipher.getInstance(KS_TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, keystoreKey(), GCMParameterSpec(128, iv))
+        cipher.init(Cipher.ENCRYPT_MODE, keystoreKey())
+        val iv = cipher.iv                            // Keystore 生成的随机 12 字节 IV
+        require(iv != null && iv.size == 12) { "Keystore 未返回 IV" }
         val ct = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
         return Base64.encodeToString(iv + ct, Base64.NO_WRAP)
     }

@@ -65,6 +65,10 @@ interface PartnerDao {
     /** 占位行自愈：强制 archived=1 / hidden=1（防止误操作把占位行当普通伴侣恢复） */
     @Query("UPDATE partners SET archived = 1, hidden = 1 WHERE id = -1")
     suspend fun quarantinePlaceholder()
+
+    /** 备份恢复：清空全部伴侣（先清记录/关联表） */
+    @Query("DELETE FROM partners")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -114,6 +118,10 @@ interface RecordDao {
 
     @Query("DELETE FROM sex_records")
     suspend fun deleteAll()
+
+    /** 备份恢复：清空关联表（记录 CASCADE 也会清，显式删更稳） */
+    @Query("DELETE FROM record_partner_cross_ref")
+    suspend fun deleteAllLinks()
 
     /** 拆分组：取同组全部段 */
     @Query("SELECT * FROM sex_records WHERE splitGroupId = :groupId ORDER BY splitIndex ASC")
@@ -239,6 +247,16 @@ interface ProfileDao {
 
     @Query("UPDATE user_profile SET pinHash = :hash, pinSalt = :salt WHERE id = 1")
     suspend fun setPin(hash: String, salt: String)
+
+    /** 备份恢复：只还原资料类字段，设置/PIN 等本机状态不动 */
+    @Query(
+        "UPDATE user_profile SET gender = :gender, birthYear = :birthYear WHERE id = 1"
+    )
+    suspend fun restoreProfile(gender: String, birthYear: Int?)
+
+    /** 备份恢复后确保单行存在（无则按默认插入） */
+    @Query("INSERT OR IGNORE INTO user_profile (id) VALUES (1)")
+    suspend fun ensureRow()
 }
 
 @Dao
@@ -275,4 +293,11 @@ interface TemplateDao {
 
     @Query("SELECT COUNT(*) FROM scene_templates")
     suspend fun count(): Int
+
+    /** 备份恢复：全量读取 / 清空 / 按 id 写回 */
+    @Query("SELECT * FROM scene_templates ORDER BY id ASC")
+    suspend fun listAll(): List<SceneTemplate>
+
+    @Query("DELETE FROM scene_templates")
+    suspend fun deleteAll()
 }

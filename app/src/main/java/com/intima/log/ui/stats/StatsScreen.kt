@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -165,10 +166,11 @@ class StatsViewModel @Inject constructor(
                 .take(8)
                 .map { (id, n) -> (partnerMap[id]?.nickname ?: "已归档") to n }
 
-            // 高潮次数排行：「我」+ 每位参与者（按记录内参与者顺序号聚合）。
-            // 跨日拆分组的每条分段都带同一份 climaxesJson，必须按 splitGroupId 去重只计一次，
-            // 否则同一组在每天分段上重复累加（统计显示在第二天分段上被重复计算）
-            val climaxTotals = linkedMapOf<String, Int>()
+            // 高潮次数排行：「我」+ 每位参与者。climaxesJson 的 key 是记录内参与者顺序号，
+            // 必须在每条记录内部解析成具体 partnerId 后再跨记录聚合——不同记录的参与者列表
+            // 不同，直接拿全局顺序号找名字会把次数算到错误的伴侣头上。
+            // 跨日拆分组的每条分段都带同一份 climaxesJson，必须按 splitGroupId 去重只计一次。
+            val climaxTotals = linkedMapOf<String, Int>()   // key = "me" 或 partnerId
             val seenGroups = mutableSetOf<String>()
             all.forEach { item ->
                 val rec = item.record
@@ -179,20 +181,20 @@ class StatsViewModel @Inject constructor(
                 }
                 val map = com.intima.log.ui.record.RecordEditViewModel.parseClimaxes(rec.climaxesJson)
                 if (map.isNotEmpty()) {
-                    map.forEach { (key, n) -> climaxTotals.merge(key, n, Int::plus) }
+                    val ids = item.partners.map { it.id }
+                    map.forEach { (key, n) ->
+                        val resolved = if (key == "me") "me"
+                        else key.toLongOrNull()?.let { idx -> ids.getOrNull(idx.toInt())?.toString() }
+                        if (resolved != null) climaxTotals.merge(resolved, n, Int::plus)
+                    }
                 }
             }
             climaxStats = climaxTotals.entries
                 .filter { it.value > 0 }
                 .sortedByDescending { it.value }
                 .map { (key, n) ->
-                    val name = when {
-                        key == "me" -> "我"
-                        else -> key.toLongOrNull()?.let { idx ->
-                            // key 是记录内顺序号，对应不了具体人时退化为「参与者N」
-                            itemIndexName(idx, all, partnerMap)
-                        } ?: "参与者${key}"
-                    }
+                    val name = if (key == "me") "我"
+                    else key.toLongOrNull()?.let { partnerMap[it]?.nickname } ?: "已归档"
                     name to n
                 }
 
@@ -224,20 +226,6 @@ class StatsViewModel @Inject constructor(
             }.mapValues { it.value.size }
         }
     }
-
-    private fun itemIndexName(
-        idx: Long,
-        all: List<com.intima.log.data.db.SexRecordWithPartners>,
-        partnerMap: Map<Long, com.intima.log.data.db.Partner>,
-    ): String {
-        // 遍历记录找该顺序号对应 partnerId；多人组合按 joinOrder。简化：取第一条含该顺序号的记录
-        for (item in all) {
-            val ids = item.partners.map { it.id }
-            if (idx.toInt() < ids.size) return partnerMap[ids[idx.toInt()]]?.nickname ?: "已归档"
-        }
-        return "参与者${idx + 1}"
-    }
-
 
     /** 自定义保护措施条目按名称取色（稳定散列到预设色板） */
     private fun protectionColorByName(name: String): Color {
@@ -318,6 +306,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
         CardBlock(
             "热力图（近一年 · 按场次）",
             subtitle = "统计范围 ${java.time.LocalDate.now().minusDays(363)} ~ ${java.time.LocalDate.now()}",
+            trailing = { HeatmapLegend() },
         ) {
             Heatmap(dayCounts = viewModel.heatmap)
         }
@@ -325,14 +314,25 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun CardBlock(title: String, subtitle: String? = null, content: @Composable () -> Unit) {
+private fun CardBlock(
+    title: String,
+    subtitle: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(LocalIntimaPalette.current.card, RoundedCornerShape(16.dp))
             .padding(16.dp),
     ) {
-        M3Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LocalIntimaPalette.current.text)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            M3Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LocalIntimaPalette.current.text, modifier = Modifier.weight(1f))
+            if (trailing != null) trailing()
+        }
         if (subtitle != null) {
             M3Text(
                 subtitle,
